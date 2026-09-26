@@ -96,6 +96,13 @@ html,body{overflow-x:hidden;}
      needed because saved rosters now live in the shared online database, not just this page. */
   .login-overlay{position:fixed; inset:0; z-index:200; display:flex; align-items:center; justify-content:center; background:linear-gradient(135deg,var(--navy2),var(--navy)); padding:20px;}
   .login-overlay.hidden{display:none;}
+  /* While Firebase is still checking a possibly-already-signed-in session (this always takes a brief
+     moment, even for someone already signed in -- e.g. right after a page reload or browser Back/
+     Forward), show this instead of the Email/Password form so it never flashes on screen for someone
+     who is not actually being signed out. */
+  .login-checking{display:none; color:#fff; font-size:13px; text-align:center; opacity:.85;}
+  .login-overlay.checking .login-box{display:none;}
+  .login-overlay.checking .login-checking{display:block;}
   .login-box{background:#fff; border-radius:var(--radius-lg); padding:28px 26px; width:100%; max-width:360px; box-shadow:0 20px 60px rgba(0,0,0,.35);}
   .login-box .login-title{font-weight:700; color:var(--navy); font-size:15px; margin-bottom:16px; text-align:center;}
   .login-box .field{margin-bottom:12px;}
@@ -300,7 +307,8 @@ html,body{overflow-x:hidden;}
 </head>
 <body>
 
-  <div class="login-overlay" id="loginOverlay">
+  <div class="login-overlay checking" id="loginOverlay">
+    <div class="login-checking" id="loginChecking" data-en="Checking sign-in…" data-ur="سائن اِن چیک ہو رہا ہے…">Checking sign-in…</div>
     <div class="login-box">
       <div class="login-title" data-en="Weekly Court Roster — Sign in" data-ur="ہفتہ وار روسٹر — سائن اِن">Weekly Court Roster — Sign in</div>
       <div class="field"><label data-en="Email" data-ur="ای میل">Email</label><input type="email" id="login_email" autocomplete="username"></div>
@@ -513,6 +521,7 @@ html,body{overflow-x:hidden;}
   auth.onAuthStateChanged(function(user){
     var overlay = document.getElementById('loginOverlay');
     var badge = document.getElementById('userBadge');
+    overlay.classList.remove('checking'); // Firebase has now genuinely confirmed one way or the other
     if(user){
       overlay.classList.add('hidden');
       if(badge) badge.textContent = user.email || '';
