@@ -1039,6 +1039,21 @@ html,body{overflow-x:hidden;}
     }
   });
   document.getElementById('rosterTable').addEventListener('change', function(e){
+    if(e.target.classList.contains('case-nature-select') && e.target.value === 'Other'){
+      // "Other" doubles as a right-here shortcut to add a brand-new Nature-of-Case code, so a code
+      // that doesn't exist yet doesn't force leaving this case row to use the separate "(+ Nature
+      // Codes)" manager and then coming back to pick it.
+      var typed = prompt(isUrdu ? 'نئی نوعیت کا کوڈ لکھیں (مثلاً BBA):' : 'Enter the new Nature-of-Case code (e.g. BBA):');
+      var code = (typed || '').trim();
+      if(code){
+        if(NATURE_CODES.indexOf(code) === -1){ NATURE_CODES.splice(NATURE_CODES.length - 1, 0, code); }
+        e.target.innerHTML = '<option value="">'+(isUrdu?'کیس کی نوعیت':'Nature of Case')+'</option>' +
+          NATURE_CODES.map(function(n){ return '<option value="'+escapeAttr(n)+'">'+n+'</option>'; }).join('');
+        e.target.value = code;
+      } else {
+        e.target.value = '';
+      }
+    }
     if(isExpandableCaseSelect(e.target)){
       e.target.blur();
     }
@@ -1862,11 +1877,18 @@ html,body{overflow-x:hidden;}
     });
 
     // Union the judge names found across every zone for the same Bench number -- a bench can appear
-    // in more than one zone when its formation differs by day (see pdfFindBenchHeadings), but the
-    // roster keeps one judges list per bench for the week, so all names seen for that number are kept.
+    // in more than one zone when its formation differs by day (see pdfFindBenchHeadings). But a Bench
+    // number is sometimes reused on the very same day for a completely unrelated special sitting (e.g.
+    // a video-link sitting for a different Registry's cases, with its own extra judge) that this office
+    // never has a case before -- only a zone that actually holds one of this office's own (Punjab-
+    // matched) cases has its judges counted, so that unrelated sitting's judge doesn't get mixed in.
     var judgesByBench = {};
     zones.forEach(function(zone){
       if(!zone.judges || !zone.bench.num) return;
+      var hasOwnCase = allBlocks.some(function(blk){
+        return blk.top >= zone.start && blk.top < zone.end && blk.punjabMatch && blk.punjabMatch.matched;
+      });
+      if(!hasOwnCase) return;
       var arr = judgesByBench[zone.bench.num] = judgesByBench[zone.bench.num] || [];
       zone.judges.forEach(function(name){ if(arr.indexOf(name) === -1) arr.push(name); });
     });
