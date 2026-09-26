@@ -445,6 +445,17 @@ html,body{overflow-x:hidden;}
   var rosterReadErrorShown = false;
 
   function rosterUid(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,8); }
+
+  // Keep the shared database from growing forever: only the most recent ROSTER_RETENTION_MONTHS
+  // months of saved rosters are kept. Anything older is dropped the next time anyone saves (see
+  // pushRosterSave below) -- there is no separate cleanup job, so this only runs as often as the
+  // roster is actually used, which for a weekly roster is routinely.
+  var ROSTER_RETENTION_MONTHS = 6;
+  function rosterRetentionCutoff(){
+    var d = new Date();
+    d.setMonth(d.getMonth() - ROSTER_RETENTION_MONTHS);
+    return d.toISOString().slice(0,10); // "YYYY-MM-DD" -- same format as weekStart, so string compare sorts correctly
+  }
   function rosterLoginError(msg){ var box = document.getElementById('loginError'); if(box) box.textContent = msg || ''; }
 
   document.getElementById('loginBtn').addEventListener('click', function(){
@@ -483,7 +494,10 @@ html,body{overflow-x:hidden;}
       db.runTransaction(function(tx){
         return tx.get(ROSTER_DOC_REF).then(function(snap){
           var serverArr = (snap.exists && Array.isArray(snap.data().rosters)) ? snap.data().rosters : [];
-          var merged = mergeRostersById(serverArr, localSnapshot).filter(function(r){ return toDelete.indexOf(r.id) === -1; });
+          var cutoff = rosterRetentionCutoff();
+          var merged = mergeRostersById(serverArr, localSnapshot).filter(function(r){
+            return toDelete.indexOf(r.id) === -1 && (!r.weekStart || r.weekStart >= cutoff);
+          });
           tx.set(ROSTER_DOC_REF, { rosters: merged });
           return merged;
         });
@@ -1170,7 +1184,8 @@ html,body{overflow-x:hidden;}
 
   // Sign-off stamps at the bottom of the print sheet — left = prepared by, right = approved by.
   // Each stamp is a Name / Designation / Office Address block, editable (✎) or clearable (✕) as a
-  // whole. Only the FIRST printed page's stamps are editable, same reasoning as the letterhead.
+  // whole. The whole week's roster prints as one document (one Bench per page), so this stamp block
+  // is placed, and editable, only on the LAST printed page — see buildPrintPageHtml.
   var stampLeft = { name: 'Iftikhar Ahmed', designation: 'Junior Clerk', address: 'Camp Office Prosecutor General Punjab\nSupreme Court Of Pakistan\nIslamabad' };
   var stampRight = { name: '', designation: '', address: 'Camp Office Prosecutor General Punjab\nSupreme Court Of Pakistan\nIslamabad' };
   var editingStamp = null; // 'left' | 'right' | null
@@ -1249,10 +1264,13 @@ html,body{overflow-x:hidden;}
     return html;
   }
   function buildPrintPageHtml(benches, r, editableHeader, isLastPage){
+    // The whole week's roster prints as one document, one Bench per page -- so the sign-off stamps
+    // (prepared by / approved by) belong only once, at the very end of that document, not repeated
+    // after every single Bench's page.
     return '<div class="p-page'+(isLastPage?'':' p-page-break')+'">' +
       buildLetterheadHtml(r, editableHeader) +
       buildBenchTableHtml(benches, r) +
-      buildSignHtml(editableHeader) +
+      (isLastPage ? buildSignHtml(true) : '') +
       '</div>';
   }
   function printCurrentRoster(mode){
@@ -1586,11 +1604,15 @@ html,body{overflow-x:hidden;}
       if(BENCH_LINE_RE.test(first.text) || /^SHARIAT\s+APPELLATE\s+BENCH/i.test(full)){
         var m = full.match(BENCH_NUM_RE);
         var num = m ? m[1].toUpperCase() : null;
-        if(num && /^SHARIAT/i.test(full)) num = 'SHARIAT-' + num;
+        if(!num) return; // a note line like "Bench After 11:00 AM (for hearing cases of ... Registry
+                          // through Video Link)" also starts with the word "Bench" but names no actual
+                          // Bench number -- it is not a real heading and must not become its own (empty,
+                          // day-less) zone that steals rows away from the real Bench heading around it.
+        if(/^SHARIAT/i.test(full)) num = 'SHARIAT-' + num;
         // Sometimes the first judge's name is glued onto the same physical line as the Bench
         // heading itself (e.g. "BENCH - III JUSTICE JAMAL KHAN MANDOKHAIL") -- keep whatever
         // text follows the heading match so pdfExtractJudgeNames can still pick it up.
-        var inlineRest = m ? full.slice(m.index + m[0].length).trim() : '';
+        var inlineRest = full.slice(m.index + m[0].length).trim();
         out.push({top: r.top, x0: first.x0, text: full, num: num, inlineJudgeText: inlineRest});
       }
     });
@@ -1742,20 +1764,49 @@ html,body{overflow-x:hidden;}
     });
 
     var allBlocks = [];
+    // A day's cases are often split across more than one consecutive Bench section (e.g. "BENCH - IV"
+    // then, still under the very same "Monday, DD-Mon-YYYY", "BENCH - V") without the day heading being
+    // repeated for the later section(s). Track the most recently seen day here, across zones in top-to-
+    // bottom order, so a Bench zone with no day heading of its own is attached to that carried-over day
+    // instead of being dropped entirely (which used to silently skip that whole Bench for that day).
+    var lastDayCarry = null;
     zones.forEach(function(zone){
       var b = zone.bench;
       var zoneRows = rows.filter(function(r){ return r.top >= zone.start && r.top < zone.end; });
       var headersInZone = weekdayTokens.filter(function(h){ return h.top >= zone.start && h.top < zone.end; })
         .sort(function(a, b2){ return a.top - b2.top; });
-      if(!headersInZone.length) return; // no readable day heading anywhere in this Bench's zone at all
+
+      if(!headersInZone.length){
+        if(!lastDayCarry) return; // no day known yet at all (nothing seen before this to carry forward)
+        // Find the first genuine case row (a Sr.No.-led column-1 line) in this zone, so judge names
+        // above it are still kept separate from the case rows below it, exactly as a real day heading
+        // would separate them.
+        var firstCaseTop = zone.end;
+        for(var ri = 0; ri < zoneRows.length; ri++){
+          var r0 = zoneRows[ri];
+          if(r0.top <= zone.start) continue;
+          var c1 = r0.items.filter(function(it){ return pdfTableColForX(colBounds, it.x0) === 1; });
+          c1.sort(function(a,c){ return a.x0 - c.x0; });
+          if(c1.length && pdfMatchSrLead(c1[0].text)){ firstCaseTop = r0.top; break; }
+        }
+        headersInZone = [{ top: firstCaseTop - 0.01, weekday: lastDayCarry.weekday }];
+      } else {
+        lastDayCarry = headersInZone[headersInZone.length - 1];
+      }
 
       // Judge names sit between the Bench heading row and the FIRST day heading in the zone, however
       // far down that first heading is -- e.g. "BENCH - I" then 1-3 rows of "JUSTICE ..." names, then
       // (eventually) "Monday, DD-Mon-YYYY". Collect any inline text on the heading row itself plus
       // those in-between rows and pull judge names out of it, so this works for every Bench without a
-      // hardcoded list.
+      // hardcoded list. That gap can also hold running page headers ("FINAL CAUSE LIST...", "Page N of
+      // NN"), a repeated small "BENCH - X" corner mark, or a "Note: ... through Video Link" explanatory
+      // paragraph when this is a video-link sitting -- none of those name a judge, and because
+      // pdfExtractJudgeNames simply reads from one "JUSTICE" mention up to the next, letting any of that
+      // other text ride along would glue it onto whichever real judge's name happens to precede it. Only
+      // rows that actually mention "Justice" are kept, which cleanly drops all of that noise.
       var judgeRows = zoneRows.filter(function(r){
-        return r.top > zone.start && r.top < headersInZone[0].top && !pdfRowIsHeaderish(r);
+        if(r.top <= zone.start || r.top >= headersInZone[0].top || pdfRowIsHeaderish(r)) return false;
+        return /justice/i.test(r.items.map(function(it){ return it.text; }).join(' '));
       });
       var judgeText = [b.inlineJudgeText].concat(judgeRows.map(function(r){
         return r.items.map(function(it){ return it.text; }).join(' ');
