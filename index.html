@@ -1882,18 +1882,37 @@ html,body{overflow-x:hidden;}
     // a video-link sitting for a different Registry's cases, with its own extra judge) that this office
     // never has a case before -- only a zone that actually holds one of this office's own (Punjab-
     // matched) cases has its judges counted, so that unrelated sitting's judge doesn't get mixed in.
+    //
+    // A Bench's real composition can also genuinely change day to day within the same week (one judge
+    // swapped for another partway through) -- judgeGroupsByBench keeps each distinct judges-set found,
+    // together with which of THIS office's own case-days it covers, so the caller can show the day(s)
+    // that a composition applies to (rather than silently merging two different days' judges into one
+    // list) without needing a full per-day redesign of how a Bench's judges are stored.
     var judgesByBench = {};
+    var judgeGroupsByBench = {};
     zones.forEach(function(zone){
       if(!zone.judges || !zone.bench.num) return;
-      var hasOwnCase = allBlocks.some(function(blk){
-        return blk.top >= zone.start && blk.top < zone.end && blk.punjabMatch && blk.punjabMatch.matched;
+      var ownWeekdays = [];
+      allBlocks.forEach(function(blk){
+        if(blk.top >= zone.start && blk.top < zone.end && blk.punjabMatch && blk.punjabMatch.matched &&
+           ownWeekdays.indexOf(blk.weekday) === -1) ownWeekdays.push(blk.weekday);
       });
-      if(!hasOwnCase) return;
+      if(!ownWeekdays.length) return;
       var arr = judgesByBench[zone.bench.num] = judgesByBench[zone.bench.num] || [];
       zone.judges.forEach(function(name){ if(arr.indexOf(name) === -1) arr.push(name); });
+
+      var groups = judgeGroupsByBench[zone.bench.num] = judgeGroupsByBench[zone.bench.num] || [];
+      var sameGroup = groups.find(function(g){
+        return g.judges.length === zone.judges.length && g.judges.every(function(n){ return zone.judges.indexOf(n) >= 0; });
+      });
+      if(sameGroup){
+        ownWeekdays.forEach(function(d){ if(sameGroup.weekdays.indexOf(d) === -1) sameGroup.weekdays.push(d); });
+      } else {
+        groups.push({ weekdays: ownWeekdays.slice(), judges: zone.judges.slice() });
+      }
     });
 
-    return { blocks: allBlocks, benches: benches, weekMonday: weekMonday, judgesByBench: judgesByBench };
+    return { blocks: allBlocks, benches: benches, weekMonday: weekMonday, judgesByBench: judgesByBench, judgeGroupsByBench: judgeGroupsByBench };
   }
 
   function pdfParseCauseListPdf(pdfDoc){
@@ -2043,14 +2062,33 @@ html,body{overflow-x:hidden;}
     // per-bench judges list with what was read here (rather than leaving last week's names in
     // place) for every Bench that was actually found in the PDF. New names are also added to the
     // master Judges list so they show up in the "+ Add Judge" picker too.
+    //
+    // When a Bench's composition genuinely differs across the week's own case-days (judgeGroupsByBench
+    // found more than one distinct judges-set for it), the group covering the most days becomes the
+    // main Judges list and each other group becomes an Exception Note naming which day(s) it applies
+    // to -- e.g. "PDF: Tue, Wed, Thu — Justice Muhammad Ali Mazhar" -- instead of merging every day's
+    // judges into one (misleadingly larger) list. Existing notes are kept; only an identical PDF-sourced
+    // note already there is not duplicated on a re-import.
+    var WEEKDAY_ORDER5 = WEEKDAY_NAMES_PDF.slice(0,5);
+    function pdfDayListLabel(weekdays){
+      return weekdays.slice().sort(function(a,b){ return WEEKDAY_ORDER5.indexOf(a) - WEEKDAY_ORDER5.indexOf(b); })
+        .map(function(d){ var di = WEEKDAY_ORDER5.indexOf(d); return isUrdu ? DAYS_UR[di] : DAYS_EN[di].slice(0,3); })
+        .join(isUrdu ? '، ' : ', ');
+    }
     var judgesUpdated = [];
-    Object.keys(parseResult.judgesByBench || {}).forEach(function(num){
+    Object.keys(parseResult.judgeGroupsByBench || {}).forEach(function(num){
       var jbi = pdfBenchIndexForNum(num);
       if(jbi < 0) return;
-      var names = parseResult.judgesByBench[num];
-      if(!names.length) return;
-      currentRoster.benches[jbi].judgesList = names.slice();
-      names.forEach(function(n){ if(JUDGES.indexOf(n) === -1) JUDGES.push(n); });
+      var groups = parseResult.judgeGroupsByBench[num];
+      if(!groups.length) return;
+      var primary = groups.reduce(function(best, g){ return (g.weekdays.length > best.weekdays.length) ? g : best; }, groups[0]);
+      currentRoster.benches[jbi].judgesList = primary.judges.slice();
+      groups.forEach(function(g){
+        g.judges.forEach(function(n){ if(JUDGES.indexOf(n) === -1) JUDGES.push(n); });
+        if(g === primary) return;
+        var note = 'PDF: ' + pdfDayListLabel(g.weekdays) + ' — ' + g.judges.join(', ');
+        if(currentRoster.benches[jbi].judgesNotes.indexOf(note) === -1) currentRoster.benches[jbi].judgesNotes.push(note);
+      });
       syncBenchToMaster(jbi);
       judgesUpdated.push(BENCHES[jbi].name);
     });
