@@ -92,6 +92,21 @@ html,body{overflow-x:hidden;}
   #pageHeadingBox input, #pageHeadingBox textarea{font-size:13px; font-weight:600; padding:3px 6px; border-radius:5px; border:1px solid var(--gold); color:var(--navy); min-width:280px; font-family:inherit;}
   .lang-btn{background:var(--gold); color:var(--navy3); border:none; padding:7px 16px; border-radius:20px; font-size:12.5px; font-weight:700; cursor:pointer;}
 
+  /* Sign-in gate — shared Camp Office login (same account as the other camp-office systems),
+     needed because saved rosters now live in the shared online database, not just this page. */
+  .login-overlay{position:fixed; inset:0; z-index:200; display:flex; align-items:center; justify-content:center; background:linear-gradient(135deg,var(--navy2),var(--navy)); padding:20px;}
+  .login-overlay.hidden{display:none;}
+  .login-box{background:#fff; border-radius:var(--radius-lg); padding:28px 26px; width:100%; max-width:360px; box-shadow:0 20px 60px rgba(0,0,0,.35);}
+  .login-box .login-title{font-weight:700; color:var(--navy); font-size:15px; margin-bottom:16px; text-align:center;}
+  .login-box .field{margin-bottom:12px;}
+  .login-box .field label{display:block; font-size:11.5px; font-weight:600; color:var(--navy); margin-bottom:4px;}
+  .login-box .field input{width:100%; padding:9px 10px; border:1px solid var(--border); border-radius:var(--radius-sm); font-size:13px; box-sizing:border-box;}
+  .login-error{color:#a33a3a; font-size:12px; margin-top:8px; min-height:14px;}
+  .login-hint{color:var(--muted); font-size:10.5px; margin-top:10px; text-align:center;}
+  .topbar .user-badge{font-size:11.5px; opacity:.85;}
+  .topbar .logout-btn{background:rgba(255,255,255,.14); border:1px solid rgba(255,255,255,.32); color:#fff; padding:6px 12px; border-radius:20px; font-size:11.5px; cursor:pointer;}
+  .topbar .logout-btn:hover{background:rgba(255,255,255,.24);}
+
   .wrap{max-width:1200px; margin:0 auto; padding:22px 20px 60px;}
 
   .assumption-note{background:#fdf0e0; border-left:3px solid #c46a1c; border-radius:0 8px 8px 0; padding:12px 16px; margin-bottom:20px; font-size:12px; color:#5a3d1a;}
@@ -147,6 +162,7 @@ html,body{overflow-x:hidden;}
   .chip{background:#eef1f8; color:var(--navy); border:1px solid var(--border); border-radius:12px; padding:2px 6px 2px 9px; font-size:10px; display:inline-flex; align-items:center; gap:4px; line-height:1.5; white-space:pre-line;}
   .chip.small{font-size:9.5px; padding:1px 5px 1px 8px;}
   .chip .chip-x{cursor:pointer; color:#a33a3a; font-weight:700; font-size:10px;}
+  .chip .chip-edit{cursor:pointer; color:var(--gold-deep); font-weight:700; font-size:10px;}
   /* Each Sr.No. entry for the day gets its own clearly bordered block, stacked one under another
      (like separate cells/blocks in an Excel sheet), instead of chips wrapping side by side. */
   .case-chip-list{display:flex; flex-direction:column; gap:6px; margin-bottom:5px;}
@@ -278,17 +294,33 @@ html,body{overflow-x:hidden;}
 }
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
 </head>
 <body>
+
+  <div class="login-overlay" id="loginOverlay">
+    <div class="login-box">
+      <div class="login-title" data-en="Weekly Court Roster — Sign in" data-ur="ہفتہ وار روسٹر — سائن اِن">Weekly Court Roster — Sign in</div>
+      <div class="field"><label data-en="Email" data-ur="ای میل">Email</label><input type="email" id="login_email" autocomplete="username"></div>
+      <div class="field"><label data-en="Password" data-ur="پاس ورڈ">Password</label><input type="password" id="login_password" autocomplete="current-password"></div>
+      <div class="btn primary" id="loginBtn" style="width:100%; text-align:center;" data-en="Sign in" data-ur="سائن اِن">Sign in</div>
+      <div class="login-error" id="loginError"></div>
+      <div class="login-hint" data-en="Use the same office login as the other Camp Office systems." data-ur="وہی دفتری لاگ اِن استعمال کریں جو دیگر کیمپ آفس سسٹمز میں چلتا ہے۔">Use the same office login as the other Camp Office systems.</div>
+    </div>
+  </div>
 
   <div class="topbar">
     <div class="brand"><span class="brand-logo" id="brandLogo"></span> <span id="pageHeadingBox"></span></div>
     <div class="right-controls">
+      <span class="user-badge" id="userBadge"></span>
       <div class="theme-switch-wrap">
         <button class="theme-btn" id="themeBtn" onclick="toggleThemePicker()" title="تھیم منتخب کریں / Choose Theme">🎨</button>
         <div class="theme-picker" id="themePicker"></div>
       </div>
       <button class="lang-btn" id="langBtn" onclick="toggleLang()">اردو</button>
+      <button class="logout-btn" id="logoutBtn" onclick="rosterSignOut()" data-en="Sign out" data-ur="سائن آؤٹ">Sign out</button>
     </div>
   </div>
 
@@ -346,7 +378,7 @@ html,body{overflow-x:hidden;}
         <div class="btn ghost" onclick="printCurrentRoster('active')" data-en="🖨️ Print / Preview (This Bench Only)" data-ur="🖨️ پرنٹ / پیش منظر (صرف یہ بینچ)">🖨️ Print / Preview (This Bench Only)</div>
         <div class="btn ghost" onclick="printCurrentRoster('all')" data-en="🖨️ Print / Preview (All Benches — each on its own page)" data-ur="🖨️ پرنٹ / پیش منظر (تمام بینچز — ہر ایک الگ صفحے پر)">🖨️ Print / Preview (All Benches — each on its own page)</div>
       </div>
-      <div class="disclaimer" data-en="This saves to this page's list only, for review — it is not yet saved to a live database." data-ur="یہ صرف اس صفحے کی فہرست میں محفوظ ہوتا ہے، جانچ کے لیے — ابھی کسی لائیو ڈیٹا بیس میں محفوظ نہیں ہوتا۔">This saves to this page's list only, for review — it is not yet saved to a live database.</div>
+      <div class="disclaimer" data-en="This saves to the shared online database (same as the other Camp Office systems) — every signed-in device sees the same saved rosters." data-ur="یہ مشترکہ آن لائن ڈیٹا بیس میں محفوظ ہوتا ہے (دفتر کے باقی سسٹمز کی طرح) — ہر سائن اِن شدہ ڈیوائس پر وہی محفوظ شدہ روسٹرز نظر آتے ہیں۔">This saves to the shared online database (same as the other Camp Office systems) — every signed-in device sees the same saved rosters.</div>
     </div>
 
   </div>
@@ -395,8 +427,104 @@ html,body{overflow-x:hidden;}
   </div>
 
 <script>
+  /* ===== Shared Camp Office login + online database (same Firebase project, same account,
+     as the other camp-office systems) — this replaces the old page-only in-memory save list. */
+  var firebaseConfig = {
+    apiKey: "AIzaSyCWl8dktUjAGF_JLMuZun2w3g_xnX3WBkU",
+    authDomain: "camp-office-project.firebaseapp.com",
+    projectId: "camp-office-project",
+    storageBucket: "camp-office-project.firebasestorage.app",
+    messagingSenderId: "246340921152",
+    appId: "1:246340921152:web:84b0a687a00a95523f23ca5"
+  };
+  firebase.initializeApp(firebaseConfig);
+  var auth = firebase.auth();
+  var db = firebase.firestore();
+  var ROSTER_DOC_REF = db.collection("appData_weeklyroster").doc("shared");
+  var unsubscribeRosterDoc = null;
+  var rosterReadErrorShown = false;
+
+  function rosterUid(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,8); }
+  function rosterLoginError(msg){ var box = document.getElementById('loginError'); if(box) box.textContent = msg || ''; }
+
+  document.getElementById('loginBtn').addEventListener('click', function(){
+    var email = document.getElementById('login_email').value.trim();
+    var pw = document.getElementById('login_password').value;
+    rosterLoginError('');
+    if(!email || !pw){ rosterLoginError(isUrdu ? 'ای میل اور پاس ورڈ درج کریں' : 'Enter email and password'); return; }
+    auth.signInWithEmailAndPassword(email, pw).catch(function(){
+      rosterLoginError(isUrdu ? 'لاگ اِن ناکام: غلط ای میل یا پاس ورڈ' : 'Sign in failed: wrong email or password');
+    });
+  });
+  document.getElementById('login_password').addEventListener('keydown', function(ev){
+    if(ev.key === 'Enter') document.getElementById('loginBtn').click();
+  });
+  function rosterSignOut(){ auth.signOut(); }
+
+  /* Two people can save different weeks' rosters at the same moment — merge-by-id inside a
+     Firestore transaction so one person's save can never silently wipe out the other's. */
+  var pendingDeletedRosterIds = [];
+  var suppressNextRosterSnapshot = false;
+  var saveRosterTimer = null;
+  function mergeRostersById(serverArr, localArr){
+    var map = {}, order = [], seen = {};
+    (serverArr||[]).forEach(function(r){ if(r && r.id!=null){ map[r.id]=r; if(!seen[r.id]){ order.push(r.id); seen[r.id]=true; } } });
+    (localArr||[]).forEach(function(r){ if(r && r.id!=null){ map[r.id]=r; if(!seen[r.id]){ order.push(r.id); seen[r.id]=true; } } });
+    return order.map(function(id){ return map[id]; });
+  }
+  function pushRosterSave(deletedId){
+    if(deletedId) pendingDeletedRosterIds.push(deletedId);
+    suppressNextRosterSnapshot = true;
+    clearTimeout(saveRosterTimer);
+    var localSnapshot = SAVED_ROSTERS.slice();
+    saveRosterTimer = setTimeout(function(){
+      var toDelete = pendingDeletedRosterIds;
+      pendingDeletedRosterIds = [];
+      db.runTransaction(function(tx){
+        return tx.get(ROSTER_DOC_REF).then(function(snap){
+          var serverArr = (snap.exists && Array.isArray(snap.data().rosters)) ? snap.data().rosters : [];
+          var merged = mergeRostersById(serverArr, localSnapshot).filter(function(r){ return toDelete.indexOf(r.id) === -1; });
+          tx.set(ROSTER_DOC_REF, { rosters: merged });
+          return merged;
+        });
+      }).then(function(merged){
+        SAVED_ROSTERS = merged;
+      }).catch(function(err){
+        suppressNextRosterSnapshot = false;
+        alert((isUrdu ? 'آن لائن ڈیٹا بیس میں محفوظ نہیں ہو سکا: ' : 'Could not save to the online database: ') + err.message);
+      });
+    }, 250);
+  }
+
+  auth.onAuthStateChanged(function(user){
+    var overlay = document.getElementById('loginOverlay');
+    var badge = document.getElementById('userBadge');
+    if(user){
+      overlay.classList.add('hidden');
+      if(badge) badge.textContent = user.email || '';
+      rosterReadErrorShown = false;
+      if(unsubscribeRosterDoc) unsubscribeRosterDoc();
+      unsubscribeRosterDoc = ROSTER_DOC_REF.onSnapshot(function(snap){
+        if(suppressNextRosterSnapshot){ suppressNextRosterSnapshot = false; return; }
+        var data = snap.exists ? snap.data() : null;
+        SAVED_ROSTERS = (data && Array.isArray(data.rosters)) ? data.rosters : [];
+        if(document.getElementById('savedRostersModal').classList.contains('open')) openSavedRosters();
+      }, function(err){
+        if(!rosterReadErrorShown){
+          rosterReadErrorShown = true;
+          alert((isUrdu ? 'محفوظ شدہ روسٹرز آن لائن ڈیٹا بیس سے نہیں پڑھے جا سکے: ' : 'Could not read saved rosters from the online database: ') + err.message);
+        }
+      });
+    } else {
+      overlay.classList.remove('hidden');
+      if(badge) badge.textContent = '';
+      if(unsubscribeRosterDoc){ unsubscribeRosterDoc(); unsubscribeRosterDoc = null; }
+      SAVED_ROSTERS = [];
+    }
+  });
+
   var isUrdu = false;
-  var PUNJAB_EMBLEM_SVG = '<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><circle cx="50" cy="50" r="47" fill="var(--navy)" stroke="var(--gold)" stroke-width="2.2"/><circle cx="50" cy="50" r="42" fill="none" stroke="var(--gold)" stroke-width="0.6" opacity="0.55"/><circle cx="43" cy="27" r="8.5" fill="var(--gold-light)"/><circle cx="46.3" cy="24.3" r="7" fill="var(--navy)"/><g transform="translate(58,22) scale(0.62)"><path d="M0,-8 L2.3,-2.6 L8,-2.5 L3.4,1.2 L5,7 L0,3.6 L-5,7 L-3.4,1.2 L-8,-2.5 L-2.3,-2.6 Z" fill="var(--gold-light)"/></g><path d="M27,42 Q32.5,37.5 38,42 T49,42 T60,42 T71,42 T73,42" fill="none" stroke="var(--gold-light)" stroke-width="2" stroke-linecap="round" opacity="1"/><path d="M27,47 Q32.5,42.5 38,47 T49,47 T60,47 T71,47 T73,47" fill="none" stroke="var(--gold-light)" stroke-width="2" stroke-linecap="round" opacity="1"/><path d="M27,52 Q32.5,47.5 38,52 T49,52 T60,52 T71,52 T73,52" fill="none" stroke="var(--gold-light)" stroke-width="2" stroke-linecap="round" opacity="1"/><path d="M27,57 Q32.5,52.5 38,57 T49,57 T60,57 T71,57 T73,57" fill="none" stroke="var(--gold-light)" stroke-width="1.6" stroke-linecap="round" opacity="1"/><path d="M27,62 Q32.5,57.5 38,62 T49,62 T60,62 T71,62 T73,62" fill="none" stroke="var(--gold-light)" stroke-width="1.6" stroke-linecap="round" opacity="0.85"/><path d="M63.16,93.03 Q67.40,84.90 59.23,75.37" fill="none" stroke="var(--gold)" stroke-width="1.1"/><path d="M63.98,91.14 Q64.62,90.98 65.43,90.26" fill="none" stroke="var(--gold)" stroke-width="0.85" stroke-linecap="round"/><path d="M63.98,91.14 Q63.54,90.64 63.27,89.60" fill="none" stroke="var(--gold)" stroke-width="0.85" stroke-linecap="round"/><path d="M64.51,88.91 Q65.15,88.60 65.85,87.67" fill="none" stroke="var(--gold)" stroke-width="0.85" stroke-linecap="round"/><path d="M64.51,88.91 Q63.94,88.47 63.44,87.41" fill="none" stroke="var(--gold)" stroke-width="0.85" stroke-linecap="round"/><path d="M64.60,86.62 Q65.20,86.15 65.75,85.02" fill="none" stroke="var(--gold)" stroke-width="0.85" stroke-linecap="round"/><path d="M64.60,86.62 Q63.91,86.27 63.17,85.25" fill="none" stroke="var(--gold)" stroke-width="0.85" stroke-linecap="round"/><path d="M64.24,84.25 Q64.78,83.65 65.13,82.35" fill="none" stroke="var(--gold)" stroke-width="0.85" stroke-linecap="round"/><path d="M64.24,84.25 Q63.46,84.02 62.48,83.08" fill="none" stroke="var(--gold)" stroke-width="0.85" stroke-linecap="round"/><path d="M63.42,81.83 Q63.89,81.10 64.03,79.67" fill="none" stroke="var(--gold)" stroke-width="0.85" stroke-linecap="round"/><path d="M63.42,81.83 Q62.56,81.71 61.39,80.88" fill="none" stroke="var(--gold)" stroke-width="0.85" stroke-linecap="round"/><path d="M62.15,79.35 Q62.53,78.52 62.48,76.99" fill="none" stroke="var(--gold)" stroke-width="0.85" stroke-linecap="round"/><path d="M62.15,79.35 Q61.23,79.34 59.87,78.62" fill="none" stroke="var(--gold)" stroke-width="0.85" stroke-linecap="round"/><path d="M63.16,93.03 Q75.07,79.88 69.75,68.41" fill="none" stroke="var(--gold)" stroke-width="1.1"/><path d="M65.86,89.79 Q66.52,89.85 67.52,89.44" fill="none" stroke="var(--gold)" stroke-width="0.85" stroke-linecap="round"/><path d="M65.86,89.79 Q65.61,89.17 65.70,88.09" fill="none" stroke="var(--gold)" stroke-width="0.85" stroke-linecap="round"/><path d="M68.15,86.37 Q68.86,86.35 69.89,85.78" fill="none" stroke="var(--gold)" stroke-width="0.85" stroke-linecap="round"/><path d="M68.15,86.37 Q67.81,85.74 67.78,84.57" fill="none" stroke="var(--gold)" stroke-width="0.85" stroke-linecap="round"/><path d="M69.83,83.02 Q70.58,82.88 71.58,82.11" fill="none" stroke="var(--gold)" stroke-width="0.85" stroke-linecap="round"/><path d="M69.83,83.02 Q69.38,82.41 69.18,81.16" fill="none" stroke="var(--gold)" stroke-width="0.85" stroke-linecap="round"/><path d="M70.91,79.73 Q71.67,79.45 72.58,78.45" fill="none" stroke="var(--gold)" stroke-width="0.85" stroke-linecap="round"/><path d="M70.91,79.73 Q70.33,79.16 69.90,77.88" fill="none" stroke="var(--gold)" stroke-width="0.85" stroke-linecap="round"/><path d="M71.38,76.49 Q72.11,76.04 72.87,74.81" fill="none" stroke="var(--gold)" stroke-width="0.85" stroke-linecap="round"/><path d="M71.38,76.49 Q70.66,76.01 69.96,74.75" fill="none" stroke="var(--gold)" stroke-width="0.85" stroke-linecap="round"/><path d="M71.23,73.30 Q71.90,72.68 72.43,71.24" fill="none" stroke="var(--gold)" stroke-width="0.85" stroke-linecap="round"/><path d="M71.23,73.30 Q70.39,72.94 69.40,71.77" fill="none" stroke="var(--gold)" stroke-width="0.85" stroke-linecap="round"/><path d="M63.16,93.03 Q80.94,73.74 75.68,58.34" fill="none" stroke="var(--gold)" stroke-width="1.1"/><path d="M67.33,88.16 Q67.99,88.24 69.00,87.86" fill="none" stroke="var(--gold)" stroke-width="0.85" stroke-linecap="round"/><path d="M67.33,88.16 Q67.10,87.54 67.22,86.47" fill="none" stroke="var(--gold)" stroke-width="0.85" stroke-linecap="round"/><path d="M70.89,83.21 Q71.60,83.21 72.65,82.69" fill="none" stroke="var(--gold)" stroke-width="0.85" stroke-linecap="round"/><path d="M70.89,83.21 Q70.57,82.57 70.60,81.39" fill="none" stroke="var(--gold)" stroke-width="0.85" stroke-linecap="round"/><path d="M73.61,78.40 Q74.37,78.31 75.42,77.61" fill="none" stroke="var(--gold)" stroke-width="0.85" stroke-linecap="round"/><path d="M73.61,78.40 Q73.20,77.75 73.09,76.50" fill="none" stroke="var(--gold)" stroke-width="0.85" stroke-linecap="round"/><path d="M75.52,73.73 Q76.31,73.52 77.31,72.61" fill="none" stroke="var(--gold)" stroke-width="0.85" stroke-linecap="round"/><path d="M75.52,73.73 Q74.99,73.11 74.68,71.80" fill="none" stroke="var(--gold)" stroke-width="0.85" stroke-linecap="round"/><path d="M76.61,69.20 Q77.39,68.84 78.27,67.70" fill="none" stroke="var(--gold)" stroke-width="0.85" stroke-linecap="round"/><path d="M76.61,69.20 Q75.95,68.65 75.39,67.31" fill="none" stroke="var(--gold)" stroke-width="0.85" stroke-linecap="round"/><path d="M76.87,64.81 Q77.61,64.27 78.30,62.90" fill="none" stroke="var(--gold)" stroke-width="0.85" stroke-linecap="round"/><path d="M76.87,64.81 Q76.08,64.35 75.24,63.07" fill="none" stroke="var(--gold)" stroke-width="0.85" stroke-linecap="round"/><path d="M36.84,93.03 Q32.60,84.90 40.77,75.37" fill="none" stroke="var(--gold)" stroke-width="1.1"/><path d="M36.02,91.14 Q36.46,90.64 36.73,89.60" fill="none" stroke="var(--gold)" stroke-width="0.85" stroke-linecap="round"/><path d="M36.02,91.14 Q35.38,90.98 34.57,90.26" fill="none" stroke="var(--gold)" stroke-width="0.85" stroke-linecap="round"/><path d="M35.49,88.91 Q36.06,88.47 36.56,87.41" fill="none" stroke="var(--gold)" stroke-width="0.85" stroke-linecap="round"/><path d="M35.49,88.91 Q34.85,88.60 34.15,87.67" fill="none" stroke="var(--gold)" stroke-width="0.85" stroke-linecap="round"/><path d="M35.40,86.62 Q36.09,86.27 36.83,85.25" fill="none" stroke="var(--gold)" stroke-width="0.85" stroke-linecap="round"/><path d="M35.40,86.62 Q34.80,86.15 34.25,85.02" fill="none" stroke="var(--gold)" stroke-width="0.85" stroke-linecap="round"/><path d="M35.76,84.25 Q36.54,84.02 37.52,83.08" fill="none" stroke="var(--gold)" stroke-width="0.85" stroke-linecap="round"/><path d="M35.76,84.25 Q35.22,83.65 34.87,82.35" fill="none" stroke="var(--gold)" stroke-width="0.85" stroke-linecap="round"/><path d="M36.58,81.83 Q37.44,81.71 38.61,80.88" fill="none" stroke="var(--gold)" stroke-width="0.85" stroke-linecap="round"/><path d="M36.58,81.83 Q36.11,81.10 35.97,79.67" fill="none" stroke="var(--gold)" stroke-width="0.85" stroke-linecap="round"/><path d="M37.85,79.35 Q38.77,79.34 40.13,78.62" fill="none" stroke="var(--gold)" stroke-width="0.85" stroke-linecap="round"/><path d="M37.85,79.35 Q37.47,78.52 37.52,76.99" fill="none" stroke="var(--gold)" stroke-width="0.85" stroke-linecap="round"/><path d="M36.84,93.03 Q24.93,79.88 30.25,68.41" fill="none" stroke="var(--gold)" stroke-width="1.1"/><path d="M34.14,89.79 Q34.39,89.17 34.30,88.09" fill="none" stroke="var(--gold)" stroke-width="0.85" stroke-linecap="round"/><path d="M34.14,89.79 Q33.48,89.85 32.48,89.44" fill="none" stroke="var(--gold)" stroke-width="0.85" stroke-linecap="round"/><path d="M31.85,86.37 Q32.19,85.74 32.22,84.57" fill="none" stroke="var(--gold)" stroke-width="0.85" stroke-linecap="round"/><path d="M31.85,86.37 Q31.14,86.35 30.11,85.78" fill="none" stroke="var(--gold)" stroke-width="0.85" stroke-linecap="round"/><path d="M30.17,83.02 Q30.62,82.41 30.82,81.16" fill="none" stroke="var(--gold)" stroke-width="0.85" stroke-linecap="round"/><path d="M30.17,83.02 Q29.42,82.88 28.42,82.11" fill="none" stroke="var(--gold)" stroke-width="0.85" stroke-linecap="round"/><path d="M29.09,79.73 Q29.67,79.16 30.10,77.88" fill="none" stroke="var(--gold)" stroke-width="0.85" stroke-linecap="round"/><path d="M29.09,79.73 Q28.33,79.45 27.42,78.45" fill="none" stroke="var(--gold)" stroke-width="0.85" stroke-linecap="round"/><path d="M28.62,76.49 Q29.34,76.01 30.04,74.75" fill="none" stroke="var(--gold)" stroke-width="0.85" stroke-linecap="round"/><path d="M28.62,76.49 Q27.89,76.04 27.13,74.81" fill="none" stroke="var(--gold)" stroke-width="0.85" stroke-linecap="round"/><path d="M28.77,73.30 Q29.61,72.94 30.60,71.77" fill="none" stroke="var(--gold)" stroke-width="0.85" stroke-linecap="round"/><path d="M28.77,73.30 Q28.10,72.68 27.57,71.24" fill="none" stroke="var(--gold)" stroke-width="0.85" stroke-linecap="round"/><path d="M36.84,93.03 Q19.06,73.74 24.32,58.34" fill="none" stroke="var(--gold)" stroke-width="1.1"/><path d="M32.67,88.16 Q32.90,87.54 32.78,86.47" fill="none" stroke="var(--gold)" stroke-width="0.85" stroke-linecap="round"/><path d="M32.67,88.16 Q32.01,88.24 31.00,87.86" fill="none" stroke="var(--gold)" stroke-width="0.85" stroke-linecap="round"/><path d="M29.11,83.21 Q29.43,82.57 29.40,81.39" fill="none" stroke="var(--gold)" stroke-width="0.85" stroke-linecap="round"/><path d="M29.11,83.21 Q28.40,83.21 27.35,82.69" fill="none" stroke="var(--gold)" stroke-width="0.85" stroke-linecap="round"/><path d="M26.39,78.40 Q26.80,77.75 26.91,76.50" fill="none" stroke="var(--gold)" stroke-width="0.85" stroke-linecap="round"/><path d="M26.39,78.40 Q25.63,78.31 24.58,77.61" fill="none" stroke="var(--gold)" stroke-width="0.85" stroke-linecap="round"/><path d="M24.48,73.73 Q25.01,73.11 25.32,71.80" fill="none" stroke="var(--gold)" stroke-width="0.85" stroke-linecap="round"/><path d="M24.48,73.73 Q23.69,73.52 22.69,72.61" fill="none" stroke="var(--gold)" stroke-width="0.85" stroke-linecap="round"/><path d="M23.39,69.20 Q24.05,68.65 24.61,67.31" fill="none" stroke="var(--gold)" stroke-width="0.85" stroke-linecap="round"/><path d="M23.39,69.20 Q22.61,68.84 21.73,67.70" fill="none" stroke="var(--gold)" stroke-width="0.85" stroke-linecap="round"/><path d="M23.13,64.81 Q23.92,64.35 24.76,63.07" fill="none" stroke="var(--gold)" stroke-width="0.85" stroke-linecap="round"/><path d="M23.13,64.81 Q22.39,64.27 21.70,62.90" fill="none" stroke="var(--gold)" stroke-width="0.85" stroke-linecap="round"/><path d="M45,84 Q50,80.5 55,84 Q52,87 50,90.5 Q48,87 45,84 Z" fill="var(--gold)" stroke="var(--gold-deep)" stroke-width="0.5"/><text x="50" y="73" font-size="8.5" fill="var(--gold-light)" text-anchor="middle">حکومتِ پنجاب</text></svg>';
+  var PUNJAB_EMBLEM_SVG ='<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><circle cx="50" cy="50" r="47" fill="var(--navy)" stroke="var(--gold)" stroke-width="2.2"/><circle cx="50" cy="50" r="42" fill="none" stroke="var(--gold)" stroke-width="0.6" opacity="0.55"/><circle cx="43" cy="27" r="8.5" fill="var(--gold-light)"/><circle cx="46.3" cy="24.3" r="7" fill="var(--navy)"/><g transform="translate(58,22) scale(0.62)"><path d="M0,-8 L2.3,-2.6 L8,-2.5 L3.4,1.2 L5,7 L0,3.6 L-5,7 L-3.4,1.2 L-8,-2.5 L-2.3,-2.6 Z" fill="var(--gold-light)"/></g><path d="M27,42 Q32.5,37.5 38,42 T49,42 T60,42 T71,42 T73,42" fill="none" stroke="var(--gold-light)" stroke-width="2" stroke-linecap="round" opacity="1"/><path d="M27,47 Q32.5,42.5 38,47 T49,47 T60,47 T71,47 T73,47" fill="none" stroke="var(--gold-light)" stroke-width="2" stroke-linecap="round" opacity="1"/><path d="M27,52 Q32.5,47.5 38,52 T49,52 T60,52 T71,52 T73,52" fill="none" stroke="var(--gold-light)" stroke-width="2" stroke-linecap="round" opacity="1"/><path d="M27,57 Q32.5,52.5 38,57 T49,57 T60,57 T71,57 T73,57" fill="none" stroke="var(--gold-light)" stroke-width="1.6" stroke-linecap="round" opacity="1"/><path d="M27,62 Q32.5,57.5 38,62 T49,62 T60,62 T71,62 T73,62" fill="none" stroke="var(--gold-light)" stroke-width="1.6" stroke-linecap="round" opacity="0.85"/><path d="M63.16,93.03 Q67.40,84.90 59.23,75.37" fill="none" stroke="var(--gold)" stroke-width="1.1"/><path d="M63.98,91.14 Q64.62,90.98 65.43,90.26" fill="none" stroke="var(--gold)" stroke-width="0.85" stroke-linecap="round"/><path d="M63.98,91.14 Q63.54,90.64 63.27,89.60" fill="none" stroke="var(--gold)" stroke-width="0.85" stroke-linecap="round"/><path d="M64.51,88.91 Q65.15,88.60 65.85,87.67" fill="none" stroke="var(--gold)" stroke-width="0.85" stroke-linecap="round"/><path d="M64.51,88.91 Q63.94,88.47 63.44,87.41" fill="none" stroke="var(--gold)" stroke-width="0.85" stroke-linecap="round"/><path d="M64.60,86.62 Q65.20,86.15 65.75,85.02" fill="none" stroke="var(--gold)" stroke-width="0.85" stroke-linecap="round"/><path d="M64.60,86.62 Q63.91,86.27 63.17,85.25" fill="none" stroke="var(--gold)" stroke-width="0.85" stroke-linecap="round"/><path d="M64.24,84.25 Q64.78,83.65 65.13,82.35" fill="none" stroke="var(--gold)" stroke-width="0.85" stroke-linecap="round"/><path d="M64.24,84.25 Q63.46,84.02 62.48,83.08" fill="none" stroke="var(--gold)" stroke-width="0.85" stroke-linecap="round"/><path d="M63.42,81.83 Q63.89,81.10 64.03,79.67" fill="none" stroke="var(--gold)" stroke-width="0.85" stroke-linecap="round"/><path d="M63.42,81.83 Q62.56,81.71 61.39,80.88" fill="none" stroke="var(--gold)" stroke-width="0.85" stroke-linecap="round"/><path d="M62.15,79.35 Q62.53,78.52 62.48,76.99" fill="none" stroke="var(--gold)" stroke-width="0.85" stroke-linecap="round"/><path d="M62.15,79.35 Q61.23,79.34 59.87,78.62" fill="none" stroke="var(--gold)" stroke-width="0.85" stroke-linecap="round"/><path d="M63.16,93.03 Q75.07,79.88 69.75,68.41" fill="none" stroke="var(--gold)" stroke-width="1.1"/><path d="M65.86,89.79 Q66.52,89.85 67.52,89.44" fill="none" stroke="var(--gold)" stroke-width="0.85" stroke-linecap="round"/><path d="M65.86,89.79 Q65.61,89.17 65.70,88.09" fill="none" stroke="var(--gold)" stroke-width="0.85" stroke-linecap="round"/><path d="M68.15,86.37 Q68.86,86.35 69.89,85.78" fill="none" stroke="var(--gold)" stroke-width="0.85" stroke-linecap="round"/><path d="M68.15,86.37 Q67.81,85.74 67.78,84.57" fill="none" stroke="var(--gold)" stroke-width="0.85" stroke-linecap="round"/><path d="M69.83,83.02 Q70.58,82.88 71.58,82.11" fill="none" stroke="var(--gold)" stroke-width="0.85" stroke-linecap="round"/><path d="M69.83,83.02 Q69.38,82.41 69.18,81.16" fill="none" stroke="var(--gold)" stroke-width="0.85" stroke-linecap="round"/><path d="M70.91,79.73 Q71.67,79.45 72.58,78.45" fill="none" stroke="var(--gold)" stroke-width="0.85" stroke-linecap="round"/><path d="M70.91,79.73 Q70.33,79.16 69.90,77.88" fill="none" stroke="var(--gold)" stroke-width="0.85" stroke-linecap="round"/><path d="M71.38,76.49 Q72.11,76.04 72.87,74.81" fill="none" stroke="var(--gold)" stroke-width="0.85" stroke-linecap="round"/><path d="M71.38,76.49 Q70.66,76.01 69.96,74.75" fill="none" stroke="var(--gold)" stroke-width="0.85" stroke-linecap="round"/><path d="M71.23,73.30 Q71.90,72.68 72.43,71.24" fill="none" stroke="var(--gold)" stroke-width="0.85" stroke-linecap="round"/><path d="M71.23,73.30 Q70.39,72.94 69.40,71.77" fill="none" stroke="var(--gold)" stroke-width="0.85" stroke-linecap="round"/><path d="M63.16,93.03 Q80.94,73.74 75.68,58.34" fill="none" stroke="var(--gold)" stroke-width="1.1"/><path d="M67.33,88.16 Q67.99,88.24 69.00,87.86" fill="none" stroke="var(--gold)" stroke-width="0.85" stroke-linecap="round"/><path d="M67.33,88.16 Q67.10,87.54 67.22,86.47" fill="none" stroke="var(--gold)" stroke-width="0.85" stroke-linecap="round"/><path d="M70.89,83.21 Q71.60,83.21 72.65,82.69" fill="none" stroke="var(--gold)" stroke-width="0.85" stroke-linecap="round"/><path d="M70.89,83.21 Q70.57,82.57 70.60,81.39" fill="none" stroke="var(--gold)" stroke-width="0.85" stroke-linecap="round"/><path d="M73.61,78.40 Q74.37,78.31 75.42,77.61" fill="none" stroke="var(--gold)" stroke-width="0.85" stroke-linecap="round"/><path d="M73.61,78.40 Q73.20,77.75 73.09,76.50" fill="none" stroke="var(--gold)" stroke-width="0.85" stroke-linecap="round"/><path d="M75.52,73.73 Q76.31,73.52 77.31,72.61" fill="none" stroke="var(--gold)" stroke-width="0.85" stroke-linecap="round"/><path d="M75.52,73.73 Q74.99,73.11 74.68,71.80" fill="none" stroke="var(--gold)" stroke-width="0.85" stroke-linecap="round"/><path d="M76.61,69.20 Q77.39,68.84 78.27,67.70" fill="none" stroke="var(--gold)" stroke-width="0.85" stroke-linecap="round"/><path d="M76.61,69.20 Q75.95,68.65 75.39,67.31" fill="none" stroke="var(--gold)" stroke-width="0.85" stroke-linecap="round"/><path d="M76.87,64.81 Q77.61,64.27 78.30,62.90" fill="none" stroke="var(--gold)" stroke-width="0.85" stroke-linecap="round"/><path d="M76.87,64.81 Q76.08,64.35 75.24,63.07" fill="none" stroke="var(--gold)" stroke-width="0.85" stroke-linecap="round"/><path d="M36.84,93.03 Q32.60,84.90 40.77,75.37" fill="none" stroke="var(--gold)" stroke-width="1.1"/><path d="M36.02,91.14 Q36.46,90.64 36.73,89.60" fill="none" stroke="var(--gold)" stroke-width="0.85" stroke-linecap="round"/><path d="M36.02,91.14 Q35.38,90.98 34.57,90.26" fill="none" stroke="var(--gold)" stroke-width="0.85" stroke-linecap="round"/><path d="M35.49,88.91 Q36.06,88.47 36.56,87.41" fill="none" stroke="var(--gold)" stroke-width="0.85" stroke-linecap="round"/><path d="M35.49,88.91 Q34.85,88.60 34.15,87.67" fill="none" stroke="var(--gold)" stroke-width="0.85" stroke-linecap="round"/><path d="M35.40,86.62 Q36.09,86.27 36.83,85.25" fill="none" stroke="var(--gold)" stroke-width="0.85" stroke-linecap="round"/><path d="M35.40,86.62 Q34.80,86.15 34.25,85.02" fill="none" stroke="var(--gold)" stroke-width="0.85" stroke-linecap="round"/><path d="M35.76,84.25 Q36.54,84.02 37.52,83.08" fill="none" stroke="var(--gold)" stroke-width="0.85" stroke-linecap="round"/><path d="M35.76,84.25 Q35.22,83.65 34.87,82.35" fill="none" stroke="var(--gold)" stroke-width="0.85" stroke-linecap="round"/><path d="M36.58,81.83 Q37.44,81.71 38.61,80.88" fill="none" stroke="var(--gold)" stroke-width="0.85" stroke-linecap="round"/><path d="M36.58,81.83 Q36.11,81.10 35.97,79.67" fill="none" stroke="var(--gold)" stroke-width="0.85" stroke-linecap="round"/><path d="M37.85,79.35 Q38.77,79.34 40.13,78.62" fill="none" stroke="var(--gold)" stroke-width="0.85" stroke-linecap="round"/><path d="M37.85,79.35 Q37.47,78.52 37.52,76.99" fill="none" stroke="var(--gold)" stroke-width="0.85" stroke-linecap="round"/><path d="M36.84,93.03 Q24.93,79.88 30.25,68.41" fill="none" stroke="var(--gold)" stroke-width="1.1"/><path d="M34.14,89.79 Q34.39,89.17 34.30,88.09" fill="none" stroke="var(--gold)" stroke-width="0.85" stroke-linecap="round"/><path d="M34.14,89.79 Q33.48,89.85 32.48,89.44" fill="none" stroke="var(--gold)" stroke-width="0.85" stroke-linecap="round"/><path d="M31.85,86.37 Q32.19,85.74 32.22,84.57" fill="none" stroke="var(--gold)" stroke-width="0.85" stroke-linecap="round"/><path d="M31.85,86.37 Q31.14,86.35 30.11,85.78" fill="none" stroke="var(--gold)" stroke-width="0.85" stroke-linecap="round"/><path d="M30.17,83.02 Q30.62,82.41 30.82,81.16" fill="none" stroke="var(--gold)" stroke-width="0.85" stroke-linecap="round"/><path d="M30.17,83.02 Q29.42,82.88 28.42,82.11" fill="none" stroke="var(--gold)" stroke-width="0.85" stroke-linecap="round"/><path d="M29.09,79.73 Q29.67,79.16 30.10,77.88" fill="none" stroke="var(--gold)" stroke-width="0.85" stroke-linecap="round"/><path d="M29.09,79.73 Q28.33,79.45 27.42,78.45" fill="none" stroke="var(--gold)" stroke-width="0.85" stroke-linecap="round"/><path d="M28.62,76.49 Q29.34,76.01 30.04,74.75" fill="none" stroke="var(--gold)" stroke-width="0.85" stroke-linecap="round"/><path d="M28.62,76.49 Q27.89,76.04 27.13,74.81" fill="none" stroke="var(--gold)" stroke-width="0.85" stroke-linecap="round"/><path d="M28.77,73.30 Q29.61,72.94 30.60,71.77" fill="none" stroke="var(--gold)" stroke-width="0.85" stroke-linecap="round"/><path d="M28.77,73.30 Q28.10,72.68 27.57,71.24" fill="none" stroke="var(--gold)" stroke-width="0.85" stroke-linecap="round"/><path d="M36.84,93.03 Q19.06,73.74 24.32,58.34" fill="none" stroke="var(--gold)" stroke-width="1.1"/><path d="M32.67,88.16 Q32.90,87.54 32.78,86.47" fill="none" stroke="var(--gold)" stroke-width="0.85" stroke-linecap="round"/><path d="M32.67,88.16 Q32.01,88.24 31.00,87.86" fill="none" stroke="var(--gold)" stroke-width="0.85" stroke-linecap="round"/><path d="M29.11,83.21 Q29.43,82.57 29.40,81.39" fill="none" stroke="var(--gold)" stroke-width="0.85" stroke-linecap="round"/><path d="M29.11,83.21 Q28.40,83.21 27.35,82.69" fill="none" stroke="var(--gold)" stroke-width="0.85" stroke-linecap="round"/><path d="M26.39,78.40 Q26.80,77.75 26.91,76.50" fill="none" stroke="var(--gold)" stroke-width="0.85" stroke-linecap="round"/><path d="M26.39,78.40 Q25.63,78.31 24.58,77.61" fill="none" stroke="var(--gold)" stroke-width="0.85" stroke-linecap="round"/><path d="M24.48,73.73 Q25.01,73.11 25.32,71.80" fill="none" stroke="var(--gold)" stroke-width="0.85" stroke-linecap="round"/><path d="M24.48,73.73 Q23.69,73.52 22.69,72.61" fill="none" stroke="var(--gold)" stroke-width="0.85" stroke-linecap="round"/><path d="M23.39,69.20 Q24.05,68.65 24.61,67.31" fill="none" stroke="var(--gold)" stroke-width="0.85" stroke-linecap="round"/><path d="M23.39,69.20 Q22.61,68.84 21.73,67.70" fill="none" stroke="var(--gold)" stroke-width="0.85" stroke-linecap="round"/><path d="M23.13,64.81 Q23.92,64.35 24.76,63.07" fill="none" stroke="var(--gold)" stroke-width="0.85" stroke-linecap="round"/><path d="M23.13,64.81 Q22.39,64.27 21.70,62.90" fill="none" stroke="var(--gold)" stroke-width="0.85" stroke-linecap="round"/><path d="M45,84 Q50,80.5 55,84 Q52,87 50,90.5 Q48,87 45,84 Z" fill="var(--gold)" stroke="var(--gold-deep)" stroke-width="0.5"/><text x="50" y="73" font-size="8.5" fill="var(--gold-light)" text-anchor="middle">حکومتِ پنجاب</text></svg>';
   var activeBenchIndex = 0;
 
   // Officer (APG/DPG) — same starter list used in the Case Entry / Monthly Progress Report module,
@@ -422,6 +550,44 @@ html,body{overflow-x:hidden;}
   // one-line summary, then "+ Connected Case No." opens a fresh block for the next one (2nd, 3rd, ...).
   // These lists are each a STARTER/sample list — manage/add-edit them via the links above.
   var CASE_TYPES2 = ['Crl.P.L.A.','C.P.L.A.','Crl.Sh.R.P.','Crl.Sh.A.','Crl.R.P.','C.R.P.','Crl.A.','C.A.','Const.P.','Crl.M.A.','C.M.A.','Crl.O.P.','H.R.C.','J.P.','Review Petition','C.P.','Other'];
+
+  // ---------- Editing an already-added case chip ----------
+  // Turns a built case string (e.g. "12. Crl.M.A.321/2026 (ATA)\nin Crl.P.L.A.45/2026") back into
+  // { srNo, items:[{type,no,year,nature}, ...] } so an existing chip can be re-opened for correction
+  // (e.g. after a PDF-import mistake) instead of only being deletable.
+  function parseCaseItemStr(itemStr){
+    var s = itemStr.trim();
+    var nature = '', main = s;
+    var natureMatch = s.match(/^(.*?)\s*\(([^()]*)\)\s*$/);
+    if(natureMatch){ main = natureMatch[1].trim(); nature = natureMatch[2].trim(); }
+    var slashIdx = main.lastIndexOf('/');
+    if(slashIdx === -1) return null;
+    var typeNo = main.slice(0, slashIdx);
+    var year = main.slice(slashIdx+1).trim();
+    var type = '';
+    var sortedTypes = CASE_TYPES2.slice().sort(function(a,b){ return b.length - a.length; });
+    for(var i = 0; i < sortedTypes.length; i++){
+      if(typeNo.indexOf(sortedTypes[i]) === 0){ type = sortedTypes[i]; break; }
+    }
+    var no = type ? typeNo.slice(type.length) : typeNo;
+    return { type: type, no: no.trim(), year: year, nature: nature };
+  }
+  function parseCaseStrToRows(caseStr){
+    var lines = String(caseStr||'').split('\n');
+    var srNo = '', items = [];
+    lines.forEach(function(line, li){
+      var rest = line;
+      if(li === 0){
+        var dotIdx = rest.indexOf('. ');
+        if(dotIdx !== -1){ srNo = rest.slice(0, dotIdx); rest = rest.slice(dotIdx+2); }
+      } else if(rest.indexOf('in ') === 0){
+        rest = rest.slice(3);
+      }
+      var it = parseCaseItemStr(rest);
+      if(it) items.push(it);
+    });
+    return { srNo: srNo, items: items };
+  }
 
   function rosterYearRange(){
     var years = [];
@@ -462,8 +628,7 @@ html,body{overflow-x:hidden;}
   ];
   var nextBenchId = 5;
 
-  var SAVED_ROSTERS = [];
-  var nextRosterId = 1;
+  var SAVED_ROSTERS = []; // mirrors the "rosters" field of the shared Firestore doc (ROSTER_DOC_REF)
   // { weekStart, dates:[...5], benches: [{id,name,judgesList,judgesNotes,officer, days:[{note,cases:[]}x5]}] }
   var currentRoster = null;
 
@@ -754,7 +919,7 @@ html,body{overflow-x:hidden;}
       html += '<td class="day-cell">' +
         '<div class="case-chip-list">' +
         day.cases.map(function(c, ci){
-          return '<span class="chip small" data-bi="'+bi+'" data-di="'+i+'" data-cidx="'+ci+'">'+escapeHtml(c)+' <span class="chip-x" data-kind="case" data-bi="'+bi+'" data-di="'+i+'" data-cidx="'+ci+'">✕</span></span>';
+          return '<span class="chip small" data-bi="'+bi+'" data-di="'+i+'" data-cidx="'+ci+'">'+escapeHtml(c)+' <span class="chip-edit" data-kind="case" data-bi="'+bi+'" data-di="'+i+'" data-cidx="'+ci+'" title="'+(isUrdu?'ترمیم کریں':'Edit')+'">✎</span><span class="chip-x" data-kind="case" data-bi="'+bi+'" data-di="'+i+'" data-cidx="'+ci+'">✕</span></span>';
         }).join('') +
         '</div>' +
         '<div class="case-add-form" data-bi="'+bi+'" data-di="'+i+'">' +
@@ -775,6 +940,22 @@ html,body{overflow-x:hidden;}
       var cbi = parseInt(e.target.dataset.bi,10), cdi = parseInt(e.target.dataset.di,10), cidx = parseInt(e.target.dataset.cidx,10);
       currentRoster.benches[cbi].days[cdi].cases.splice(cidx,1);
       renderRosterTable(currentRoster);
+      return;
+    }
+    if(e.target.classList.contains('chip-edit') && e.target.dataset.kind === 'case'){
+      // Remove the chip and re-open the mini add-form for that day, pre-filled with its parsed
+      // Sr.No./Type/No./Year/Nature so a PDF-import mistake can be corrected instead of retyped.
+      var ebi = parseInt(e.target.dataset.bi,10), edi = parseInt(e.target.dataset.di,10), ecidx = parseInt(e.target.dataset.cidx,10);
+      var oldCaseStr = currentRoster.benches[ebi].days[edi].cases[ecidx];
+      var parsed = parseCaseStrToRows(oldCaseStr);
+      currentRoster.benches[ebi].days[edi].cases.splice(ecidx,1);
+      renderRosterTable(currentRoster);
+      var form = document.querySelector('.case-add-form[data-bi="'+ebi+'"][data-di="'+edi+'"]');
+      if(form && parsed.items.length){
+        form.querySelector('.case-srno-input').value = parsed.srNo;
+        var rowsWrap2 = form.querySelector('.case-number-rows');
+        rowsWrap2.innerHTML = parsed.items.map(function(it){ return openCaseRowHtml(it); }).join('');
+      }
       return;
     }
     if(e.target.classList.contains('case-addrow-btn')){
@@ -924,12 +1105,13 @@ html,body{overflow-x:hidden;}
     if(existingIdx !== -1){
       snapshot.id = SAVED_ROSTERS[existingIdx].id;
       SAVED_ROSTERS[existingIdx] = snapshot;
-      alert(isUrdu ? 'اس ہفتے کا روسٹر پہلے سے موجود تھا — اپڈیٹ کر دیا گیا' : 'A roster for this week already existed — it has been updated');
+      alert(isUrdu ? 'اس ہفتے کا روسٹر پہلے سے موجود تھا — آن لائن اپڈیٹ کر دیا گیا' : 'A roster for this week already existed — it has been updated in the online database');
     } else {
-      snapshot.id = nextRosterId++;
+      snapshot.id = rosterUid();
       SAVED_ROSTERS.push(snapshot);
-      alert(isUrdu ? 'روسٹر محفوظ ہو گیا' : 'Roster saved');
+      alert(isUrdu ? 'روسٹر آن لائن ڈیٹا بیس میں محفوظ ہو گیا' : 'Roster saved to the online database');
     }
+    pushRosterSave();
   }
 
   function openSavedRosters(){
@@ -972,6 +1154,7 @@ html,body{overflow-x:hidden;}
   function deleteSavedRoster(id){
     if(!confirm(isUrdu ? 'یہ محفوظ شدہ روسٹر حذف کریں؟' : 'Delete this saved roster?')) return;
     SAVED_ROSTERS = SAVED_ROSTERS.filter(function(r){ return r.id !== id; });
+    pushRosterSave(id);
     openSavedRosters();
   }
 
