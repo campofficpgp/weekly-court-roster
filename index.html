@@ -447,6 +447,10 @@ html,body{overflow-x:hidden;}
   };
   firebase.initializeApp(firebaseConfig);
   var auth = firebase.auth();
+  // Sign-in stays active across browser restarts (same as the other camp-office systems) instead of
+  // being cleared the moment the browser closes -- closing and reopening the browser no longer signs
+  // the user out.
+  auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL).catch(function(){ /* falls back to the default persistence if this browser can't honor it */ });
   var db = firebase.firestore();
   var ROSTER_DOC_REF = db.collection("appData_weeklyroster").doc("shared");
   var unsubscribeRosterDoc = null;
