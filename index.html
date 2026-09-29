@@ -113,6 +113,27 @@ html,body{overflow-x:hidden;}
   .topbar .user-badge{font-size:11.5px; opacity:.85;}
   .topbar .logout-btn{background:rgba(255,255,255,.14); border:1px solid rgba(255,255,255,.32); color:#fff; padding:6px 12px; border-radius:20px; font-size:11.5px; cursor:pointer;}
   .topbar .logout-btn:hover{background:rgba(255,255,255,.24);}
+  .topbar .help-btn{background:rgba(255,255,255,.14); border:1px solid rgba(255,255,255,.32); color:#fff; padding:6px 12px; border-radius:20px; font-size:11.5px; cursor:pointer;}
+  .topbar .help-btn:hover{background:rgba(255,255,255,.24);}
+
+  /* ---------- Help / Guide overlay ---------- */
+  .help-overlay{position:fixed; inset:0; background:rgba(20,20,25,.55); display:none; align-items:center; justify-content:center; z-index:600; padding:20px;}
+  .help-overlay.open{display:flex;}
+  .help-shell{background:var(--card); width:100%; max-width:900px; max-height:90vh; overflow:auto; border-radius:var(--radius-lg); box-shadow:0 14px 44px rgba(0,0,0,.4);}
+  .help-toolbar{display:flex; justify-content:space-between; align-items:center; padding:14px 20px; border-bottom:1px solid var(--border); background:var(--bg); position:sticky; top:0; z-index:2;}
+  .help-toolbar h2{font-family:var(--font-head); font-size:17px; margin:0; color:var(--navy);}
+  .help-toolbar button{background:var(--card); border:1px solid var(--border); border-radius:var(--radius-sm); padding:7px 14px; font-size:12.5px; cursor:pointer;}
+  .help-body{padding:20px 24px 28px;}
+  .help-intro{font-size:13.5px; color:var(--text); line-height:1.6; margin:0 0 16px;}
+  details.faq-item{border:1px solid var(--border); border-radius:var(--radius-sm); margin-bottom:8px; background:var(--card);}
+  details.faq-item summary{padding:11px 14px; cursor:pointer; font-weight:600; font-size:13.2px; color:var(--navy); list-style:none; position:relative; padding-right:30px;}
+  details.faq-item summary::-webkit-details-marker{display:none;}
+  details.faq-item summary::after{content:"+"; position:absolute; right:14px; top:9px; font-size:17px; color:var(--muted);}
+  details.faq-item[open] summary::after{content:"\2212";}
+  details.faq-item .faq-answer{padding:0 14px 13px; font-size:13px; line-height:1.6; color:var(--text);}
+  body[dir="rtl"] details.faq-item summary{padding-right:14px; padding-left:30px;}
+  body[dir="rtl"] details.faq-item summary::after{right:auto; left:14px;}
+  @media print{ .help-overlay{display:none !important;} }
 
   .wrap{max-width:1200px; margin:0 auto; padding:22px 20px 60px;}
 
@@ -328,7 +349,52 @@ html,body{overflow-x:hidden;}
         <div class="theme-picker" id="themePicker"></div>
       </div>
       <button class="lang-btn" id="langBtn" onclick="toggleLang()">اردو</button>
+      <button class="help-btn" id="helpBtn" onclick="openHelp()" data-en="❓ Help" data-ur="❓ مدد">❓ Help</button>
       <button class="logout-btn" id="logoutBtn" onclick="rosterSignOut()" data-en="Sign out" data-ur="سائن آؤٹ">Sign out</button>
+    </div>
+  </div>
+
+  <div class="help-overlay" id="helpOverlay">
+    <div class="help-shell">
+      <div class="help-toolbar">
+        <h2 data-en="Help &amp; User Guide" data-ur="مدد اور صارف رہنما">Help &amp; User Guide</h2>
+        <button onclick="closeHelp()" data-en="Close" data-ur="بند کریں">Close</button>
+      </div>
+      <div class="help-body">
+        <p class="help-intro" data-en="This tool is shared by the whole office using the same office login as the other Camp Office systems — everything is saved online immediately and everyone sees the same roster." data-ur="یہ ٹول پورے دفتر میں دیگر Camp Office سسٹمز جیسے ہی مشترکہ دفتری لاگ اِن سے استعمال ہوتا ہے — ہر چیز فوراً آن لائن محفوظ ہو جاتی ہے اور سب کو وہی روسٹر نظر آتا ہے۔">This tool is shared by the whole office using the same office login as the other Camp Office systems — everything is saved online immediately and everyone sees the same roster.</p>
+        <details class="faq-item">
+          <summary data-en="How do I build this week's roster?" data-ur="اس ہفتے کا روسٹر کیسے بناؤں؟">How do I build this week's roster?</summary>
+          <div class="faq-answer" data-en="Pick the Monday it starts from under 'Week Starting', then click 'Build This Week's Grid' to create an empty grid you can fill in." data-ur="'ہفتہ شروع' کے تحت وہ پیر منتخب کریں جس سے ہفتہ شروع ہوتا ہے، پھر 'اس ہفتے کا گرڈ بنائیں' پر کلک کریں تاکہ خالی گرڈ بن جائے جسے آپ بھر سکیں۔">Pick the Monday it starts from under "Week Starting", then click "Build This Week's Grid" to create an empty grid you can fill in.</div>
+        </details>
+        <details class="faq-item">
+          <summary data-en="How does 'Import from Cause List PDF' work?" data-ur="'کاز لسٹ PDF سے درآمد' کیسے کام کرتی ہے؟">How does "Import from Cause List PDF" work?</summary>
+          <div class="faq-answer" data-en="Upload the week's Cause List PDF one bench/court at a time — the roster fills itself in automatically. Always check the report shown afterwards and fix anything it flags before relying on the result." data-ur="ہفتے کی کاز لسٹ PDF ایک وقت میں ایک عدالت/بینچ کے لیے اپ لوڈ کریں — روسٹر خودکار بھر جائے گا۔ نتیجے پر بھروسہ کرنے سے پہلے ہمیشہ بعد میں دکھائی جانے والی رپورٹ چیک کریں اور نشان زدہ چیزیں ٹھیک کر لیں۔">Upload the week's Cause List PDF one bench/court at a time — the roster fills itself in automatically. Always check the report shown afterwards and fix anything it flags before relying on the result.</div>
+        </details>
+        <details class="faq-item">
+          <summary data-en="What are 'Saved Rosters' for?" data-ur="'محفوظ شدہ روسٹرز' کس لیے ہیں؟">What are "Saved Rosters" for?</summary>
+          <div class="faq-answer" data-en="Click '📁 Saved Rosters' to see and reopen every week you've built before, so you never lose an old roster." data-ur="پہلے بنائے گئے ہر ہفتے کے روسٹر کو دیکھنے اور دوبارہ کھولنے کے لیے '📁 محفوظ شدہ روسٹرز' پر کلک کریں، تاکہ کوئی پرانا روسٹر ضائع نہ ہو۔">Click "📁 Saved Rosters" to see and reopen every week you've built before, so you never lose an old roster.</div>
+        </details>
+        <details class="faq-item">
+          <summary data-en="How do I switch language or theme?" data-ur="زبان یا تھیم کیسے تبدیل کروں؟">How do I switch language or theme?</summary>
+          <div class="faq-answer" data-en="Use the اردو/English button to switch language, and the 🎨 button to pick from 7 color themes — both apply instantly on your own screen." data-ur="زبان بدلنے کے لیے اردو/English بٹن، اور رنگ کی تھیم منتخب کرنے کے لیے 🎨 بٹن (7 تھیمز) استعمال کریں — دونوں فوراً آپ کی اپنی اسکرین پر لاگو ہوتے ہیں۔">Use the اردو/English button to switch language, and the 🎨 button to pick from 7 color themes — both apply instantly on your own screen.</div>
+        </details>
+        <details class="faq-item">
+          <summary data-en="Where is my data stored — is it safe if this computer breaks?" data-ur="میرا ڈیٹا کہاں محفوظ ہے — اگر یہ کمپیوٹر خراب ہو جائے تو؟">Where is my data stored — is it safe if this computer breaks?</summary>
+          <div class="faq-answer" data-en="Everything is saved online in this system's shared database, not on any one computer, so nothing is lost if this computer is lost or damaged." data-ur="سب کچھ اس سسٹم کے مشترکہ ڈیٹا بیس میں آن لائن محفوظ ہے، کسی ایک کمپیوٹر پر نہیں — اس لیے کمپیوٹر گم یا خراب ہونے پر بھی کچھ ضائع نہیں ہوتا۔">Everything is saved online in this system's shared database, not on any one computer, so nothing is lost if this computer is lost or damaged.</div>
+        </details>
+        <details class="faq-item">
+          <summary data-en="Can more than one person use it at the same time?" data-ur="کیا ایک سے زیادہ افراد بیک وقت استعمال کر سکتے ہیں؟">Can more than one person use it at the same time?</summary>
+          <div class="faq-answer" data-en="Yes — everyone signed in sees the same live roster, and a change made by one person appears for everyone else within a moment." data-ur="جی ہاں — سائن اِن ہر شخص وہی لائیو روسٹر دیکھتا ہے، اور ایک شخص کی تبدیلی چند لمحوں میں سب کو نظر آ جاتی ہے۔">Yes — everyone signed in sees the same live roster, and a change made by one person appears for everyone else within a moment.</div>
+        </details>
+        <details class="faq-item">
+          <summary data-en="How do I print or download this roster as a PDF?" data-ur="روسٹر پرنٹ یا PDF کے طور پر ڈاؤن لوڈ کیسے کروں؟">How do I print or download this roster as a PDF?</summary>
+          <div class="faq-answer" data-en="Use the Print button for a clean printable page, or the 'Download PDF' button right next to it — it opens the same print window, just choose 'Save as PDF' (or 'Microsoft Print to PDF') as the destination there instead of a physical printer." data-ur="صاف ستھرے پرنٹ کے قابل صفحے کے لیے Print بٹن، یا اس کے ساتھ 'Download PDF' بٹن استعمال کریں — یہ وہی پرنٹ ونڈو کھولتا ہے، بس وہاں پرنٹر کی بجائے 'Save as PDF' (یا 'Microsoft Print to PDF') منتخب کر لیں۔">Use the Print button for a clean printable page, or the "Download PDF" button right next to it — it opens the same print window, just choose "Save as PDF" (or "Microsoft Print to PDF") as the destination there instead of a physical printer.</div>
+        </details>
+        <details class="faq-item">
+          <summary data-en="Who can see this roster — is it private to our office?" data-ur="یہ روسٹر کون دیکھ سکتا ہے — کیا یہ صرف ہمارے آفس کے لیے محفوظ ہے؟">Who can see this roster — is it private to our office?</summary>
+          <div class="faq-answer" data-en="Only people signed in with the shared office login used across the Camp Office systems can see it, and access is further enforced by the database's own security rules." data-ur="صرف وہی لوگ دیکھ سکتے ہیں جو Camp Office سسٹمز کے مشترکہ دفتری لاگ اِن سے سائن اِن ہوں، اور رسائی مزید ڈیٹا بیس کے اپنے سیکیورٹی rules سے محفوظ ہے۔">Only people signed in with the shared office login used across the Camp Office systems can see it, and access is further enforced by the database's own security rules.</div>
+        </details>
+      </div>
     </div>
   </div>
 
@@ -1493,6 +1559,9 @@ html,body{overflow-x:hidden;}
     renderThemePicker();
     if(currentRoster) renderAll(currentRoster);
   }
+
+  function openHelp(){ document.getElementById('helpOverlay').classList.add('open'); }
+  function closeHelp(){ document.getElementById('helpOverlay').classList.remove('open'); }
 
   /* ===== Cause List PDF import (fully automatic) =====
      Upload the week's Cause List PDF once and the whole week's roster (Bench, Day, Sr.No.,
