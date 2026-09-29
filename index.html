@@ -335,6 +335,7 @@ html,body{overflow-x:hidden;}
       <div class="field"><label data-en="Email" data-ur="ای میل">Email</label><input type="email" id="login_email" autocomplete="username"></div>
       <div class="field"><label data-en="Password" data-ur="پاس ورڈ">Password</label><input type="password" id="login_password" autocomplete="current-password"></div>
       <div class="btn primary" id="loginBtn" style="width:100%; text-align:center;" data-en="Sign in" data-ur="سائن اِن">Sign in</div>
+      <div style="text-align:center;margin-top:10px;"><a href="#" id="forgotPasswordLink" style="font-size:12.5px;color:#1F4E78;text-decoration:underline;" data-en="Forgot password?" data-ur="پاس ورڈ بھول گئے؟">Forgot password?</a></div>
       <div class="login-error" id="loginError"></div>
       <div class="login-hint" data-en="Use the same office login as the other Camp Office systems." data-ur="وہی دفتری لاگ اِن استعمال کریں جو دیگر کیمپ آفس سسٹمز میں چلتا ہے۔">Use the same office login as the other Camp Office systems.</div>
     </div>
@@ -389,6 +390,10 @@ html,body{overflow-x:hidden;}
         <details class="faq-item">
           <summary data-en="How do I print or download this roster as a PDF?" data-ur="روسٹر پرنٹ یا PDF کے طور پر ڈاؤن لوڈ کیسے کروں؟">How do I print or download this roster as a PDF?</summary>
           <div class="faq-answer" data-en="Use the Print button for a clean printable page, or the 'Download PDF' button right next to it — it opens the same print window, just choose 'Save as PDF' (or 'Microsoft Print to PDF') as the destination there instead of a physical printer." data-ur="صاف ستھرے پرنٹ کے قابل صفحے کے لیے Print بٹن، یا اس کے ساتھ 'Download PDF' بٹن استعمال کریں — یہ وہی پرنٹ ونڈو کھولتا ہے، بس وہاں پرنٹر کی بجائے 'Save as PDF' (یا 'Microsoft Print to PDF') منتخب کر لیں۔">Use the Print button for a clean printable page, or the "Download PDF" button right next to it — it opens the same print window, just choose "Save as PDF" (or "Microsoft Print to PDF") as the destination there instead of a physical printer.</div>
+        </details>
+        <details class="faq-item">
+          <summary data-en="I forgot my password — what should I do?" data-ur="میں اپنا پاس ورڈ بھول گیا — کیا کروں؟">I forgot my password — what should I do?</summary>
+          <div class="faq-answer" data-en="Click 'Forgot password?' on the sign-in screen, enter your email, and a password reset link will be sent to your inbox (check spam too) — no need to contact an Administrator." data-ur="سائن اِن اسکرین پر 'Forgot password?' پر کلک کریں، اپنا ای میل درج کریں، اور پاس ورڈ ری سیٹ لنک آپ کے ای میل پر بھیج دیا جائے گا (spam فولڈر بھی چیک کریں) — Administrator سے رابطے کی ضرورت نہیں۔">Click "Forgot password?" on the sign-in screen, enter your email, and a password reset link will be sent to your inbox (check spam too) — no need to contact an Administrator.</div>
         </details>
         <details class="faq-item">
           <summary data-en="Who can see this roster — is it private to our office?" data-ur="یہ روسٹر کون دیکھ سکتا ہے — کیا یہ صرف ہمارے آفس کے لیے محفوظ ہے؟">Who can see this roster — is it private to our office?</summary>
@@ -536,7 +541,10 @@ html,body{overflow-x:hidden;}
     d.setMonth(d.getMonth() - ROSTER_RETENTION_MONTHS);
     return d.toISOString().slice(0,10); // "YYYY-MM-DD" -- same format as weekStart, so string compare sorts correctly
   }
-  function rosterLoginError(msg){ var box = document.getElementById('loginError'); if(box) box.textContent = msg || ''; }
+  function rosterLoginError(msg, isSuccess){
+    var box = document.getElementById('loginError');
+    if(box){ box.textContent = msg || ''; box.style.color = isSuccess ? '#1a7a1a' : ''; }
+  }
 
   document.getElementById('loginBtn').addEventListener('click', function(){
     var email = document.getElementById('login_email').value.trim();
@@ -549,6 +557,19 @@ html,body{overflow-x:hidden;}
   });
   document.getElementById('login_password').addEventListener('keydown', function(ev){
     if(ev.key === 'Enter') document.getElementById('loginBtn').click();
+  });
+  document.getElementById('forgotPasswordLink').addEventListener('click', function(ev){
+    ev.preventDefault();
+    var email = document.getElementById('login_email').value.trim();
+    if(!email){
+      rosterLoginError(isUrdu ? 'پہلے اوپر اپنا ای میل درج کریں، پھر دوبارہ "Forgot password?" پر کلک کریں' : "Please enter your email address above first, then click 'Forgot password?' again.");
+      return;
+    }
+    auth.sendPasswordResetEmail(email).then(function(){
+      rosterLoginError(isUrdu ? ('پاس ورڈ ری سیٹ لنک ' + email + ' پر بھیج دیا گیا ہے۔ اپنا ان باکس (اور اسپیم فولڈر) چیک کریں۔') : ('A password reset link has been sent to ' + email + '. Please check your inbox (and spam folder).'), true);
+    }).catch(function(err){
+      rosterLoginError(err.message);
+    });
   });
   function rosterSignOut(){ auth.signOut(); }
 
