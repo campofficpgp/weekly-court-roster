@@ -296,6 +296,11 @@ html,body{overflow-x:hidden;}
     body *{visibility:hidden;}
     #rosterPrintArea, #rosterPrintArea *{visibility:visible;}
     #rosterPrintArea{position:absolute; top:0; left:0; width:100%;}
+    /* The global "html,body{overflow-x:hidden}" rule (near the top of this stylesheet) is meant
+       to stop an accidental horizontal scrollbar on screen — but during PDF capture it also
+       clips a roster wider than the viewport (several benches side by side), cutting off the
+       rightmost columns. Let the body grow to the full width for the capture. */
+    html,body{overflow-x:visible !important;}
     #rosterPrintArea .heading-icon{display:none;}
     #rosterPrintArea .p-page-break{border-bottom:none; padding-bottom:0; margin-bottom:0;}
     /* If someone prints (Ctrl+P / browser print icon) without first opening this page's
@@ -1538,6 +1543,11 @@ html,body{overflow-x:hidden;}
       alert(isUrdu ? 'پہلے روسٹر بنائیں' : 'Please generate a roster first');
       return;
     }
+    /* #rosterPrintArea only gets its content from printCurrentRoster() (the "Print / Preview"
+       buttons) — this Download PDF button used to capture it directly without ever populating
+       it first, so clicking Download PDF without first opening Print/Preview produced a
+       completely blank PDF. Build the preview content ourselves before capturing. */
+    printCurrentRoster();
     var target = document.getElementById('rosterPrintArea');
     var wk = String(currentRoster.weekStart || 'Roster').replace(/[^A-Za-z0-9]+/g,'-');
     var daySel = document.getElementById('rosterDaySelect');
@@ -1558,6 +1568,8 @@ html,body{overflow-x:hidden;}
     }).catch(function(err){
       console.error("PDF export failed:", err);
       alert(isUrdu ? 'PDF بنانے میں خرابی — دوبارہ کوشش کریں۔' : 'Could not build the PDF — please try again.');
+    }).finally(function(){
+      closeRosterPrint();
     });
   }
 
