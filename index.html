@@ -455,6 +455,7 @@ html,body{overflow-x:hidden;}
       </div>
       <div style="margin-top:14px; display:flex; gap:10px; flex-wrap:wrap;">
         <div class="btn gold" onclick="saveCurrentRoster()" data-en="💾 Save This Week's Roster" data-ur="💾 اس ہفتے کا روسٹر محفوظ کریں">💾 Save This Week's Roster</div>
+        <select id="rosterDaySelect" style="padding:9px 12px;border-radius:8px;border:1px solid var(--border);font-size:13px;font-family:inherit;background:#fff;" title="Only include one day of the week in the print/PDF, instead of the whole week / صرف ہفتے کا ایک دن پرنٹ/PDF میں شامل کریں"></select>
         <div class="btn ghost" onclick="printCurrentRoster('active')" data-en="🖨️ Print / Preview (This Bench Only)" data-ur="🖨️ پرنٹ / پیش منظر (صرف یہ بینچ)">🖨️ Print / Preview (This Bench Only)</div>
         <div class="btn ghost" onclick="printCurrentRoster('all')" data-en="🖨️ Print / Preview (All Benches — each on its own page)" data-ur="🖨️ پرنٹ / پیش منظر (تمام بینچز — ہر ایک الگ صفحے پر)">🖨️ Print / Preview (All Benches — each on its own page)</div>
       </div>
@@ -889,6 +890,18 @@ html,body{overflow-x:hidden;}
       html += '<span class="bench-tab'+(bi===activeBenchIndex?' active':'')+'" data-bi="'+bi+'">'+escapeHtml(b.name)+'</span>';
     });
     box.innerHTML = html;
+    renderRosterDaySelect(r);
+  }
+  // User-requested (30 Sep 2026): let the office print/download just ONE day of the week
+  // (a single bench's Monday, say) instead of always getting the whole 5-day week.
+  function renderRosterDaySelect(r){
+    var sel = document.getElementById('rosterDaySelect');
+    if(!sel) return;
+    var keep = sel.value;
+    var html = '<option value="">'+(isUrdu?'پورا ہفتہ':'Whole week')+'</option>';
+    for(var i=0;i<5;i++){ html += '<option value="'+i+'">'+dayHeadName(i)+' — '+r.dates[i]+'</option>'; }
+    sel.innerHTML = html;
+    if(keep && [0,1,2,3,4].indexOf(parseInt(keep,10))!==-1) sel.value = keep;
   }
   document.getElementById('benchTabs').addEventListener('click', function(e){
     if(!currentRoster || !e.target.classList.contains('bench-tab')) return;
@@ -1348,18 +1361,26 @@ html,body{overflow-x:hidden;}
       '<span class="heading-icon print-reset" data-field="'+fieldKey+'" title="'+(isUrdu?'ڈیفالٹ پر واپس':'Reset to default')+'">↺</span>' +
       '</div>';
   }
-  function buildLetterheadHtml(r, editable){
+  function buildLetterheadHtml(r, editable, dayIndex){
     // Show only the currently active language's heading line (not both stacked) — matches
     // whichever language the page is toggled to (اردو/English).
     var fieldKey = isUrdu ? 'ur' : 'en';
     var value = isUrdu ? headingUr : headingEn;
+    var single = (dayIndex!==null && dayIndex!==undefined && dayIndex!=="");
+    var weekLine = single
+      ? ('<div class="p-week"><span>'+dayHeadName(parseInt(dayIndex,10))+'</span><span>'+r.dates[parseInt(dayIndex,10)]+'</span></div>')
+      : ('<div class="p-week"><span>Week</span><span>'+r.dates[0]+' – '+r.dates[4]+'</span></div>');
     return '<div class="p-logo">'+PUNJAB_EMBLEM_SVG+'</div>' +
       printHeaderRowHtml(fieldKey, value, 'p-head', editable) +
-      '<div class="p-week"><span>Week</span><span>'+r.dates[0]+' – '+r.dates[4]+'</span></div>';
+      weekLine;
   }
-  function buildBenchTableHtml(benches, r){
+  // dayIndex: null/undefined = whole week (original behaviour); 0-4 = only that one weekday's
+  // column, for the "Whole week / single day" picker above the Print/Preview buttons.
+  function buildBenchTableHtml(benches, r, dayIndex){
+    var single = (dayIndex!==null && dayIndex!==undefined && dayIndex!=="");
+    var dayList = single ? [parseInt(dayIndex,10)] : [0,1,2,3,4];
     var html = '<table><thead><tr><th style="text-align:left;">Court / Bench / Officer</th>';
-    for(var i=0;i<5;i++){ html += '<th>'+DAYS_EN[i]+'<br>'+r.dates[i]+'</th>'; }
+    dayList.forEach(function(i){ html += '<th>'+DAYS_EN[i]+'<br>'+r.dates[i]+'</th>'; });
     html += '</tr></thead><tbody>';
     benches.forEach(function(b){
       var judgesLine = (b.judgesList && b.judgesList.length) ? b.judgesList.join(', ') : '';
@@ -1370,8 +1391,9 @@ html,body{overflow-x:hidden;}
         (judgesLine ? ('<br><span style="color:#666; font-size:10.5px;">'+escapeHtml(judgesLine)+'</span>') : '') +
         (notesHtml ? ('<br>'+notesHtml) : '') +
         '</td>';
-      b.days.forEach(function(d){
-        var casesHtml = (d.cases && d.cases.length) ? d.cases.map(function(c){
+      dayList.forEach(function(i){
+        var d = b.days[i];
+        var casesHtml = (d && d.cases && d.cases.length) ? d.cases.map(function(c){
           return '<div class="p-case-block">'+escapeHtml(c).replace(/\n/g,'<br>')+'</div>';
         }).join('') : '';
         html += '<td>' + (casesHtml || '—') + '</td>';
@@ -1381,13 +1403,13 @@ html,body{overflow-x:hidden;}
     html += '</tbody></table>';
     return html;
   }
-  function buildPrintPageHtml(benches, r, editableHeader, isLastPage){
+  function buildPrintPageHtml(benches, r, editableHeader, isLastPage, dayIndex){
     // The whole week's roster prints as one document, one Bench per page -- so the sign-off stamps
     // (prepared by / approved by) belong only once, at the very end of that document, not repeated
     // after every single Bench's page.
     return '<div class="p-page'+(isLastPage?'':' p-page-break')+'">' +
-      buildLetterheadHtml(r, editableHeader) +
-      buildBenchTableHtml(benches, r) +
+      buildLetterheadHtml(r, editableHeader, dayIndex) +
+      buildBenchTableHtml(benches, r, dayIndex) +
       (isLastPage ? buildSignHtml(true) : '') +
       '</div>';
   }
@@ -1395,14 +1417,16 @@ html,body{overflow-x:hidden;}
     if(!currentRoster){ alert(isUrdu ? 'پہلے ہفتہ بنائیں' : 'Please build a week first'); return; }
     if(mode){ printMode = mode; }
     var r = currentRoster;
+    var daySel = document.getElementById('rosterDaySelect');
+    var dayIndex = (daySel && daySel.value!=="") ? parseInt(daySel.value,10) : null;
     var html;
     if(printMode === 'active'){
       var activeBench = r.benches[activeBenchIndex];
       if(!activeBench){ alert(isUrdu ? 'پہلے کوئی بینچ منتخب کریں' : 'Please select a bench first'); return; }
-      html = buildPrintPageHtml([activeBench], r, true, true);
+      html = buildPrintPageHtml([activeBench], r, true, true, dayIndex);
     } else {
       html = r.benches.map(function(b, bi){
-        return buildPrintPageHtml([b], r, bi === 0, bi === r.benches.length - 1);
+        return buildPrintPageHtml([b], r, bi === 0, bi === r.benches.length - 1, dayIndex);
       }).join('');
     }
     document.getElementById('rosterPrintArea').innerHTML = html;
@@ -1516,12 +1540,18 @@ html,body{overflow-x:hidden;}
     }
     var target = document.getElementById('rosterPrintArea');
     var wk = String(currentRoster.weekStart || 'Roster').replace(/[^A-Za-z0-9]+/g,'-');
+    var daySel = document.getElementById('rosterDaySelect');
+    var dayIndex = (daySel && daySel.value!=="") ? parseInt(daySel.value,10) : null;
+    var dayTag = (dayIndex!==null) ? ("-"+DAYS_EN[dayIndex]) : "";
+    // Reset scroll before capture: html2canvas otherwise offsets the capture by whatever the
+    // real page's current scroll position happens to be, cropping/shifting the result.
+    window.scrollTo(0,0);
     withPrintRulesActive(function(){
       return html2pdf().set({
         margin: [10,10,10,10],
-        filename: "CampOffice-WeeklyRoster-"+wk+".pdf",
+        filename: "CampOffice-WeeklyRoster-"+wk+dayTag+".pdf",
         image: {type:"jpeg", quality:0.98},
-        html2canvas: {scale:2, useCORS:true, logging:false, windowWidth: target.scrollWidth},
+        html2canvas: {scale:2, useCORS:true, logging:false, windowWidth: target.scrollWidth, scrollX:0, scrollY:0},
         jsPDF: {unit:"mm", format:"a4", orientation:"landscape"},
         pagebreak: {mode:["css","legacy"]}
       }).from(target).save();
