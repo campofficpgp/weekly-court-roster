@@ -795,11 +795,16 @@ html,body{overflow-x:hidden;}
     if(!weekStart){ alert(isUrdu ? 'پہلے ہفتہ منتخب کریں' : 'Please pick a week first'); return; }
     var dates = weekDatesFrom(weekStart);
 
-    // Preserve existing note/case assignments and the Officer-for-the-week if a roster is already built
-    // and the bench still exists.
+    // Preserve existing note/case assignments and the Officer-for-the-week only when rebuilding the
+    // SAME week (e.g. after editing a Bench's judges, or adding a Bench, and clicking "Build This
+    // Week's Grid" again) -- never when the Week Starting date itself is actually changing to a
+    // DIFFERENT week. Without this check, a Bench's cases/officer from whichever week happened to be
+    // open before (manually, or from a previous PDF import) would silently carry forward and get mixed
+    // in with the newly-imported week's own cases under the very same Bench name -- producing a roster
+    // that shows last week's cases as if they belong to this week ("ghalat roster" bug, 2026-10-03).
     var prevByBench = {};
     var prevOfficerByBench = {};
-    if(currentRoster){
+    if(currentRoster && currentRoster.weekStart === weekStart){
       currentRoster.benches.forEach(function(b){
         prevByBench[b.name] = b.days;
         prevOfficerByBench[b.name] = b.officer;
