@@ -897,11 +897,39 @@ html,body{overflow-x:hidden;}
     renderRosterTable(r);
   }
 
+  // Benches are stored/edited in whatever order they were added -- the office's old tracked
+  // Benches first, then any new ones a Cause List PDF import added at the end (see
+  // pdfEnsureBenchesExist) -- so a Bench the office only just started tracking could otherwise show
+  // up AFTER Benches with a higher number (e.g. "Bench - III" before "Bench - I"). This is only ever
+  // used to DECIDE DISPLAY ORDER; the real array (and every "bi" index used everywhere else --
+  // editing, deleting, judges, print) is left completely untouched.
+  function benchSortValue(name){
+    var m = (name || '').match(/bench\s*[-–—]?\s*([IVXLC]+|\d+)/i);
+    if(!m) return 99999;
+    var tok = m[1];
+    if(/^\d+$/.test(tok)) return parseInt(tok, 10);
+    var romanMap = {I:1, V:5, X:10, L:50, C:100};
+    var val = 0, prev = 0;
+    tok = tok.toUpperCase();
+    for(var i = tok.length - 1; i >= 0; i--){
+      var cur = romanMap[tok[i]] || 0;
+      val += (cur < prev) ? -cur : cur;
+      if(cur > prev) prev = cur;
+    }
+    return val;
+  }
+  function benchDisplayOrder(benches){
+    return benches.map(function(b, bi){ return bi; }).sort(function(a, b){
+      return benchSortValue(benches[a].name) - benchSortValue(benches[b].name);
+    });
+  }
+
   function renderBenchTabs(r){
     var box = document.getElementById('benchTabs');
     if(activeBenchIndex >= r.benches.length) activeBenchIndex = Math.max(0, r.benches.length - 1);
     var html = '';
-    r.benches.forEach(function(b, bi){
+    benchDisplayOrder(r.benches).forEach(function(bi){
+      var b = r.benches[bi];
       html += '<span class="bench-tab'+(bi===activeBenchIndex?' active':'')+'" data-bi="'+bi+'">'+escapeHtml(b.name)+'</span>';
     });
     box.innerHTML = html;
@@ -1440,8 +1468,9 @@ html,body{overflow-x:hidden;}
       if(!activeBench){ alert(isUrdu ? 'پہلے کوئی بینچ منتخب کریں' : 'Please select a bench first'); return; }
       html = buildPrintPageHtml([activeBench], r, true, true, dayIndex);
     } else {
-      html = r.benches.map(function(b, bi){
-        return buildPrintPageHtml([b], r, bi === 0, bi === r.benches.length - 1, dayIndex);
+      var order = benchDisplayOrder(r.benches);
+      html = order.map(function(bi, oi){
+        return buildPrintPageHtml([r.benches[bi]], r, oi === 0, oi === order.length - 1, dayIndex);
       }).join('');
     }
     document.getElementById('rosterPrintArea').innerHTML = html;
