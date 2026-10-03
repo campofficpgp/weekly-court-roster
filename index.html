@@ -2136,7 +2136,30 @@ html,body{overflow-x:hidden;}
       blk.cellText = blk.col1Lines.join(' ');
       blk.partyAorText = blk.col2Lines.concat(blk.col3Lines).join(' ');
       blk.punjabMatch = pdfPunjabPGMatch(blk.partyAorText);
+      // The case's PARTY/TITLE text (2nd column, e.g. "The State thr. P.G Punjab & another") sometimes
+      // names Punjab even when the counsel who actually appears (always listed in the 3rd column) is a
+      // different office entirely -- most often "Special P.G. ANF" for a Narcotics Force case, or
+      // another province's Prosecutor General. Still import it (missing a genuine Punjab case would be
+      // worse than over-including one), but mark it low-confidence/titleOnly so it gets flagged for a
+      // manual double-check instead of being trusted silently like a normal match.
+      if(blk.punjabMatch.matched && !blk.punjabMatch.lowConfidence){
+        var aorColumnOnly = pdfPunjabPGMatch(blk.col3Lines.join(' '));
+        if(!aorColumnOnly.matched){ blk.punjabMatch = { matched: true, lowConfidence: true, titleOnly: true }; }
+      }
     });
+
+    // Sr. No. groups: a plain number ("12") starts a new group, and every "and (2)", "and (3)", ...
+    // row right after it is a CONNECTED case number under that same group (exactly how the Cause List
+    // itself prints them -- see pdfMatchSrLead). allBlocks is already in top-to-bottom document order,
+    // so walking it once and bumping the group counter only on a non-"and (...)" srNo reproduces that
+    // grouping without needing to re-read any row text.
+    (function(){
+      var grp = 0;
+      allBlocks.forEach(function(blk){
+        if(!/^and\s*\(/i.test(blk.srNo)) grp++;
+        blk.grp = grp;
+      });
+    })();
 
     // Union the judge names found across every zone for the same Bench number -- a bench can appear
     // in more than one zone when its formation differs by day (see pdfFindBenchHeadings). But a Bench
@@ -2370,8 +2393,30 @@ html,body{overflow-x:hidden;}
         needsReview.push({bench: BENCHES[bi].name, day: dayHeadName(di), srNo: blk.srNo, text: blk.cellText,
           reason: isUrdu ? 'کیس نمبر پوری طرح نہیں پڑھا جا سکا' : 'case number text could not be fully read'});
       } else if(blk.punjabMatch.lowConfidence){
+        var weakReasonEn = blk.punjabMatch.titleOnly
+          ? '"Punjab" is named in the case title/parties, but the counsel actually appearing (3rd column) is a different office — please double-check'
+          : 'weak match for Prosecutor General Punjab — please double-check';
+        var weakReasonUr = blk.punjabMatch.titleOnly
+          ? 'کیس کے عنوان/پارٹیز میں "Punjab" کا نام ہے، مگر اصل پیش ہونے والا وکیل (تیسرا کالم) کسی اور دفتر کا ہے — خود چیک کریں'
+          : 'Prosecutor General Punjab کا ملاپ کمزور ہے — خود چیک کریں';
         needsReview.push({bench: BENCHES[bi].name, day: dayHeadName(di), srNo: blk.srNo, text: blk.cellText,
-          reason: isUrdu ? 'Prosecutor General Punjab کا ملاپ کمزور ہے — خود چیک کریں' : 'weak match for Prosecutor General Punjab — please double-check'});
+          reason: isUrdu ? weakReasonUr : weakReasonEn});
+      }
+      // This Sr. No. group's connected sibling(s) -- "and (2)", "and (3)", ... under the same lead
+      // number, or the lead number itself -- may have been left OUT of the roster because, taken on
+      // its own, that sibling's text never named Prosecutor General Punjab (a "Compromise"/"Stay"/
+      // other miscellaneous application attached to a case that does). Flag the one that WAS imported
+      // so the office notices there is a connected entry to check by hand, rather than it looking like
+      // the whole group came in cleanly.
+      var excludedSiblings = parseResult.blocks.filter(function(other){
+        return other.grp === blk.grp && other !== blk && !(other.punjabMatch && other.punjabMatch.matched);
+      });
+      if(excludedSiblings.length){
+        var siblingNos = excludedSiblings.map(function(s){ return s.srNo; }).join(', ');
+        needsReview.push({bench: BENCHES[bi].name, day: dayHeadName(di), srNo: blk.srNo, text: blk.cellText,
+          reason: isUrdu
+            ? ('اسی نمبر کے ساتھ جڑا ہوا ایک اور اندراج (Sr. ' + siblingNos + ') PDF میں تھا، مگر شامل نہیں ہوا (اس میں Punjab کا نام نہیں تھا) — خود PDF دیکھ کر چیک کر لیں')
+            : ('a connected entry under the same Sr. No. (Sr. ' + siblingNos + ') is in the PDF but was left out (it never named Prosecutor General Punjab) — please check it by hand')});
       }
     });
 
