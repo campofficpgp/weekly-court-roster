@@ -325,6 +325,45 @@ html,body{overflow-x:hidden;}
 @media print{
   .app-footer{ display:none; }
 }
+
+/* ================= Shared navigation sidebar (same look as the other Camp Office systems) ================= */
+:root{ --sidebar-bg:#17294a; --sidebar-bg2:#223c72; --sidebar-text:#e4e9f5; --sidebar-muted:#9caed0; }
+.app-shell{ display:flex; min-height:100vh; direction:ltr; }
+.sidebar{ width:230px; flex:none; background:linear-gradient(180deg,var(--sidebar-bg2) 0%, var(--sidebar-bg) 100%); color:var(--sidebar-text); display:flex; flex-direction:column; position:sticky; top:0; height:100vh; overflow-y:auto; transition:transform .18s ease; z-index:40; }
+.sidebar-head{ display:flex; align-items:center; justify-content:space-between; padding:14px 12px; border-bottom:1px solid rgba(255,255,255,0.12); }
+.sidebar-brand{ display:flex; align-items:center; gap:8px; font-weight:700; font-size:13.5px; }
+.sidebar-brand-logo{ display:inline-flex; width:26px; height:26px; flex:none; }
+.sidebar-brand-logo svg{ width:100%; height:100%; display:block; }
+.sidebar-nav{ padding:8px 7px; flex:1; }
+.nav-item, .nav-group-head{ display:flex; align-items:center; gap:9px; width:100%; padding:9px 9px; border-radius:7px; color:var(--sidebar-text); text-decoration:none; font-size:12.5px; font-weight:600; background:none; border:none; cursor:pointer; text-align:left; margin-bottom:2px; font-family:var(--font-head); box-sizing:border-box; }
+.nav-item:hover, .nav-group-head:hover{ background:rgba(255,255,255,0.09); }
+.nav-item.active{ background:rgba(255,255,255,0.16); }
+.nav-item .ico, .nav-group-head .ico{ width:18px; text-align:center; flex:none; }
+.nav-group-head .chev{ margin-left:auto; transition:transform .15s; font-size:11px; }
+.nav-group.open .nav-group-head .chev{ transform:rotate(90deg); }
+.nav-submenu{ max-height:0; overflow:hidden; transition:max-height .18s ease; padding-left:12px; }
+.nav-group.open .nav-submenu{ max-height:220px; }
+.nav-subitem{ display:flex; align-items:center; gap:8px; padding:7px 9px; font-size:12px; color:var(--sidebar-muted); text-decoration:none; border-radius:6px; cursor:pointer; background:none; border:none; width:100%; text-align:left; font-family:inherit; box-sizing:border-box; }
+.nav-subitem:hover, .nav-subitem.active{ background:rgba(255,255,255,0.09); color:var(--sidebar-text); }
+.sidebar-foot{ border-top:1px solid rgba(255,255,255,0.12); padding:8px 7px 14px; display:flex; flex-direction:column; gap:2px; }
+.sidebar-foot a{ display:flex; align-items:center; gap:9px; padding:7px 9px; border-radius:7px; color:var(--sidebar-muted); text-decoration:none; font-size:11.5px; }
+.sidebar-foot a:hover{ background:rgba(255,255,255,0.08); color:var(--sidebar-text); }
+.sidebar-backdrop{ display:none; }
+.main-col{ flex:1; min-width:0; display:flex; flex-direction:column; }
+body[dir="rtl"] .main-col{ direction:rtl; }
+.main-col > .wrap{ width:100%; box-sizing:border-box; flex:1; }
+.mobile-menu-btn{ display:none; background:none; border:1px solid rgba(255,255,255,0.35); color:#fff; border-radius:6px; width:32px; height:32px; cursor:pointer; font-size:14px; flex:none; align-items:center; justify-content:center; }
+@media (max-width: 960px){
+  .sidebar{ position:fixed; top:0; bottom:0; left:0; transform:translateX(-102%); box-shadow:0 0 30px rgba(0,0,0,0.3); }
+  .sidebar.mobile-open{ transform:translateX(0); }
+  .mobile-menu-btn{ display:inline-flex; }
+  .sidebar-backdrop.show{ display:block; position:fixed; inset:0; background:rgba(10,14,26,0.45); z-index:39; }
+}
+@media print{
+  .sidebar, .sidebar-backdrop{ display:none !important; }
+  .app-shell{ display:block !important; }
+  .main-col{ width:100% !important; }
+}
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <!-- html2pdf.js 0.10.1 has a bug in this app's environment: its internal wrapper around
@@ -352,8 +391,39 @@ html,body{overflow-x:hidden;}
     </div>
   </div>
 
+  <div class="app-shell">
+    <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-head">
+        <div class="sidebar-brand"><span class="sidebar-brand-logo" id="sidebarLogo"></span> <span>Camp Office</span></div>
+      </div>
+      <nav class="sidebar-nav">
+        <a class="nav-item" href="https://cmpofficepgp.org/camp-office-suite/"><span class="ico">🏠</span><span class="label">Dashboard</span></a>
+        <div class="nav-group open" id="navGroupCase">
+          <button class="nav-group-head" data-group="navGroupCase"><span class="ico">📁</span><span class="label">Case Management</span><span class="chev">›</span></button>
+          <div class="nav-submenu">
+            <a class="nav-subitem" href="https://cmpofficepgp.org/camp-office-suite/case-entry.html"><span class="ico">📋</span><span>Daily Case Entry</span></a>
+            <a class="nav-subitem" href="https://cmpofficepgp.org/case-notice-system/"><span class="ico">📨</span><span>Case Notices</span></a>
+            <a class="nav-subitem" href="https://cmpofficepgp.org/daily-case-management-system/"><span class="ico">🗃️</span><span>Daily Case Mgmt</span></a>
+            <a class="nav-subitem" href="https://cmpofficepgp.org/record-section-system/"><span class="ico">📚</span><span>Record Section</span></a>
+          </div>
+        </div>
+        <a class="nav-item" href="https://cmpofficepgp.org/bill-register-system/"><span class="ico">🧾</span><span class="label">Bill Register</span></a>
+        <a class="nav-item active" href="index.html"><span class="ico">🗂️</span><span class="label">Weekly Court Roster</span></a>
+        <a class="nav-item" href="https://cmpofficepgp.org/camp-office-suite/gallery.html"><span class="ico">🖼️</span><span class="label">Gallery</span></a>
+        <a class="nav-item" href="https://cmpofficepgp.org/camp-office-suite/employee-directory.html"><span class="ico">🗂️</span><span class="label">Employee Directory</span></a>
+      </nav>
+      <div class="sidebar-foot">
+        <a href="https://cmpofficepgp.org/camp-office-suite/chat-system.html"><span class="ico">💬</span><span class="label">Team Chat</span></a>
+        <a href="https://cmpofficepgp.org/camp-office-suite/ai-assistant.html"><span class="ico">🤖</span><span class="label">AI Assistant</span></a>
+        <a href="https://cmpofficepgp.org/camp-office-suite/backup-center.html"><span class="ico">💾</span><span class="label">Backup Center</span></a>
+        <a href="https://cmpofficepgp.org/camp-office-suite/"><span class="ico">←</span><span class="label">Portal</span></a>
+      </div>
+    </aside>
+    <div class="main-col">
+
   <div class="topbar">
-    <div class="brand"><span class="brand-logo" id="brandLogo"></span> <span id="pageHeadingBox"></span></div>
+    <div class="brand"><button class="mobile-menu-btn" id="mobileMenuBtn" aria-label="Menu">☰</button> <span class="brand-logo" id="brandLogo"></span> <span id="pageHeadingBox"></span></div>
     <div class="right-controls">
       <span class="user-badge" id="userBadge"></span>
       <div class="theme-switch-wrap">
@@ -2548,5 +2618,26 @@ html,body{overflow-x:hidden;}
 </script>
 
   <div class="app-footer">© Iftikhar Ahmed — Camp Office, Prosecutor General Punjab, Supreme Court of Pakistan, Islamabad</div>
+    </div><!-- /.main-col -->
+  </div><!-- /.app-shell -->
+<script>
+  /* Shared sidebar / mobile-drawer interactivity (same behaviour as the other Camp Office systems) */
+  (function(){
+    var sidebarEl = document.getElementById('sidebar');
+    var backdrop = document.getElementById('sidebarBackdrop');
+    var mobileBtn = document.getElementById('mobileMenuBtn');
+    var logoEl = document.getElementById('sidebarLogo');
+    try{ if(logoEl && typeof PUNJAB_EMBLEM_SVG !== 'undefined') logoEl.innerHTML = PUNJAB_EMBLEM_SVG; }catch(e){}
+    function closeDrawer(){ sidebarEl.classList.remove('mobile-open'); backdrop.classList.remove('show'); }
+    if(mobileBtn) mobileBtn.addEventListener('click', function(){ sidebarEl.classList.add('mobile-open'); backdrop.classList.add('show'); });
+    if(backdrop) backdrop.addEventListener('click', closeDrawer);
+    document.querySelectorAll('.nav-group-head').forEach(function(btn){
+      btn.addEventListener('click', function(){ document.getElementById(btn.dataset.group).classList.toggle('open'); });
+    });
+    document.querySelectorAll('.sidebar .nav-item, .sidebar .nav-subitem').forEach(function(el){
+      el.addEventListener('click', function(){ if(window.innerWidth <= 960) closeDrawer(); });
+    });
+  })();
+</script>
 </body>
 </html>
