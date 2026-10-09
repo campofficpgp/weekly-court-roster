@@ -12,58 +12,66 @@
 html,body{overflow-x:hidden;}
 
   :root{
-    --navy:#12203f; --navy2:#1c3363; --navy3:#0b1730;
-    --gold:#c8952a; --gold-light:#e8b94f; --gold-deep:#9c7420;
-    --bg:#f3f1ea; --card:#ffffff; --border:#e4e0d3; --text:#1c2130; --muted:#666f80;
+    --navy:#2A5A84; --navy2:#3d6f9c; --navy3:#1B3F63;
+    --gold:#B8860B; --gold-light:#d4a839; --gold-deep:#8a660a;
+    --bg:#F6F5F1; --card:#ffffff; --border:#E1DDD3; --text:#28394A; --muted:#647581;
     --radius-lg:10px; --radius-sm:6px; --font-head:"Segoe UI",Tahoma,Arial,sans-serif;
     --topbar-grad-angle:135deg; --accent-stripe-height:0px; --accent-stripe-color:transparent;
+    --sidebar-bg:#17294a; --sidebar-bg2:#223c72; --sidebar-text:#e4e9f5; --sidebar-muted:#9caed0;
   }
 
-  /* Theme palettes — 7 selectable design styles (🎨 picker in the topbar). Theme 1 (Official
-     Navy & Gold) is the default set in :root above; the rest override the same tokens so every
-     existing rule that already reads var(--navy)/var(--gold)/etc. re-colors and re-shapes itself
-     automatically, with no separate per-theme markup needed. */
-  body[data-theme="2"]{ /* Maroon & Silver — Judicial Formal */
-    --navy:#5c1a1a; --navy2:#7a2727; --navy3:#3d1010;
-    --gold:#9a9a9a; --gold-light:#c2c2c2; --gold-deep:#707070;
-    --bg:#f5f1ee; --card:#ffffff; --border:#e6dedb; --text:#241a1a; --muted:#6b5f5f;
-    --radius-lg:4px; --radius-sm:3px; --font-head:Georgia,'Times New Roman',serif;
-    --topbar-grad-angle:180deg;
-  }
-  body[data-theme="3"]{ /* Emerald & Cream — Classic Government */
-    --navy:#0f3d2e; --navy2:#155c46; --navy3:#0a2b20;
-    --gold:#c9a227; --gold-light:#e0bf55; --gold-deep:#96791b;
-    --bg:#f6f3ea; --card:#fffdf7; --border:#e3ddc8; --text:#1c2620; --muted:#5e6b62;
+  /* Theme palettes — 7 selectable design styles (🎨 picker in the topbar), same softened
+     navy/green/teal/ocean/sepia/contrast/night set used across the whole project (Dashboard /
+     Weekly Court Roster / Daily Case Entry / Case Notice). Navy is the default set in :root
+     above; the rest override the same tokens so every existing rule that already reads
+     var(--navy)/var(--gold)/etc. re-colors and re-shapes itself. */
+  body[data-theme="green"]{ /* Green */
+    --navy:#1a6b45; --navy2:#2f8a5c; --navy3:#12492f;
+    --gold:#C9A227; --gold-light:#ddbb52; --gold-deep:#9c7d1e;
+    --bg:#F6F8F6; --card:#ffffff; --border:#DEE6E0; --text:#233229; --muted:#5E6F64;
     --radius-lg:6px; --radius-sm:5px; --font-head:"Segoe UI",Tahoma,Arial,sans-serif;
     --topbar-grad-angle:120deg;
+    --sidebar-bg:#12492f; --sidebar-bg2:#1a6b45; --sidebar-text:#e8f2ec; --sidebar-muted:#a6c2b2;
   }
-  body[data-theme="4"]{ /* Charcoal & Bronze — Modern Minimal */
-    --navy:#2b2b2e; --navy2:#3d3d40; --navy3:#1a1a1c;
-    --gold:#b5793a; --gold-light:#d59a5e; --gold-deep:#8a5a26;
-    --bg:#f4f4f2; --card:#ffffff; --border:#e2e2e0; --text:#222224; --muted:#7a7a7c;
-    --radius-lg:16px; --radius-sm:10px; --font-head:"Trebuchet MS",Verdana,sans-serif;
+  body[data-theme="teal"]{ /* Teal */
+    --navy:#128f89; --navy2:#26a89f; --navy3:#0c655f;
+    --gold:#96762a; --gold-light:#b8934a; --gold-deep:#6f5720;
+    --bg:#F4F9F8; --card:#ffffff; --border:#DCEBE9; --text:#22302F; --muted:#5C7071;
+    --radius-lg:8px; --radius-sm:6px; --font-head:"Segoe UI",Tahoma,Arial,sans-serif;
+    --topbar-grad-angle:110deg;
+    --sidebar-bg:#0c655f; --sidebar-bg2:#128f89; --sidebar-text:#e6f4f2; --sidebar-muted:#a5cac6;
+  }
+  body[data-theme="ocean"]{ /* Ocean */
+    --navy:#1670a0; --navy2:#2a8cc4; --navy3:#0f4a6e;
+    --gold:#c9852a; --gold-light:#dba24f; --gold-deep:#9c6620;
+    --bg:#F2F8FB; --card:#ffffff; --border:#D8E9F0; --text:#1A3444; --muted:#5A7E8F;
+    --radius-lg:10px; --radius-sm:6px; --font-head:"Segoe UI",Tahoma,Arial,sans-serif;
+    --topbar-grad-angle:130deg;
+    --sidebar-bg:#0f4a6e; --sidebar-bg2:#1670a0; --sidebar-text:#e8f4fa; --sidebar-muted:#a8cfe0;
+  }
+  body[data-theme="sepia"]{ /* Sepia */
+    --navy:#6d5330; --navy2:#8a6c40; --navy3:#4a381f;
+    --gold:#a3742a; --gold-light:#c2924a; --gold-deep:#7d591f;
+    --bg:#f6efe0; --card:#fcf7ee; --border:#e5d9bd; --text:#42341f; --muted:#83725a;
+    --radius-lg:8px; --radius-sm:6px; --font-head:Georgia,'Times New Roman',serif;
+    --topbar-grad-angle:140deg;
+    --sidebar-bg:#4a381f; --sidebar-bg2:#6d5330; --sidebar-text:#f3e9d8; --sidebar-muted:#d0bd97;
+  }
+  body[data-theme="contrast"]{ /* High Contrast */
+    --navy:#111111; --navy2:#2a2a2a; --navy3:#000000;
+    --gold:#8a4b00; --gold-light:#b3661a; --gold-deep:#663700;
+    --bg:#fafafa; --card:#ffffff; --border:#1a1a1a; --text:#0a0a0a; --muted:#2e2e2e;
+    --radius-lg:6px; --radius-sm:4px; --font-head:"Segoe UI",Tahoma,Arial,sans-serif;
+    --topbar-grad-angle:180deg;
+    --sidebar-bg:#0a0a0a; --sidebar-bg2:#1a1a1a; --sidebar-text:#fafafa; --sidebar-muted:#d0d0d0;
+  }
+  body[data-theme="night"]{ /* Night */
+    --navy:#5b7bb0; --navy2:#7292c4; --navy3:#3f5580;
+    --gold:#d4a13d; --gold-light:#e0b968; --gold-deep:#a87f2c;
+    --bg:#181c26; --card:#232838; --border:#333a4e; --text:#dcdfe8; --muted:#96a0b8;
+    --radius-lg:8px; --radius-sm:6px; --font-head:"Segoe UI",Tahoma,Arial,sans-serif;
     --topbar-grad-angle:135deg;
-  }
-  body[data-theme="5"]{ /* Forest & Ivory — Soft Professional */
-    --navy:#254d32; --navy2:#356b45; --navy3:#173322;
-    --gold:#d1a85c; --gold-light:#e6c688; --gold-deep:#a3813f;
-    --bg:#f8f5ec; --card:#fffdf9; --border:#e8e0cd; --text:#20291f; --muted:#6c7566;
-    --radius-lg:12px; --radius-sm:8px; --font-head:"Segoe UI",Tahoma,Arial,sans-serif;
-    --topbar-grad-angle:145deg;
-  }
-  body[data-theme="6"]{ /* Slate & Amber — High Contrast */
-    --navy:#1e293b; --navy2:#334155; --navy3:#0f172a;
-    --gold:#f59e0b; --gold-light:#fbbf24; --gold-deep:#b45309;
-    --bg:#eef1f5; --card:#ffffff; --border:#94a3b8; --text:#0f172a; --muted:#475569;
-    --radius-lg:8px; --radius-sm:6px; --font-head:"Segoe UI",Tahoma,Arial,sans-serif;
-    --topbar-grad-angle:100deg;
-  }
-  body[data-theme="7"]{ /* Pakistan Green & Gold — National */
-    --navy:#01411c; --navy2:#046a2e; --navy3:#022e14;
-    --gold:#f4c430; --gold-light:#ffe08a; --gold-deep:#c9960a;
-    --bg:#f2f7f0; --card:#ffffff; --border:#d9e6d3; --text:#132316; --muted:#5b6b5c;
-    --radius-lg:8px; --radius-sm:6px; --font-head:"Segoe UI",Tahoma,Arial,sans-serif;
-    --topbar-grad-angle:135deg; --accent-stripe-height:4px; --accent-stripe-color:var(--gold);
+    --sidebar-bg:#12151f; --sidebar-bg2:#1e2436; --sidebar-text:#dcdfe8; --sidebar-muted:#96a0b8;
   }
 
   *{box-sizing:border-box;}
@@ -364,6 +372,14 @@ body[dir="rtl"] .main-col{ direction:rtl; }
   .app-shell{ display:block !important; }
   .main-col{ width:100% !important; }
 }
+  /* ---- unified header parts (identical on every page) ---- */
+  .topbar-logo-sm{ height:30px; width:auto; display:block; filter:drop-shadow(0 1px 2px rgba(0,0,0,0.25)); flex:none; }
+  .userbar-ce{ display:flex; align-items:center; justify-content:space-between; gap:8px; flex-wrap:wrap; max-width:1400px; margin:10px 22px 0; padding:8px 14px; background:var(--card); border:1px solid var(--border); border-radius:8px; font-size:12.5px; color:var(--muted); }
+  .userbar-ce .user-badge{ font-size:12.5px; opacity:1; color:var(--text); }
+  .userbar-ce .ub-actions{ display:flex; gap:8px; align-items:center; }
+  .userbar-ce .help-btn, .userbar-ce .logout-btn{ background:var(--card); border:1px solid var(--border); color:var(--navy); padding:6px 12px; border-radius:20px; font-size:11.5px; cursor:pointer; }
+  .userbar-ce .help-btn:hover, .userbar-ce .logout-btn:hover{ background:var(--bg); }
+  @media print{ .userbar-ce{ display:none !important; } }
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <!-- html2pdf.js 0.10.1 has a bug in this app's environment: its internal wrapper around
@@ -395,7 +411,7 @@ body[dir="rtl"] .main-col{ direction:rtl; }
     <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
     <aside class="sidebar" id="sidebar">
       <div class="sidebar-head">
-        <div class="sidebar-brand"><span class="sidebar-brand-logo" id="sidebarLogo"></span> <span>Camp Office</span></div>
+        <div class="sidebar-brand"><img src="https://cmpofficepgp.org/camp-office-suite/logo-punjab-govt.png" alt="" style="height:24px;width:auto;"> <span>Camp Office</span></div>
       </div>
       <nav class="sidebar-nav">
         <a class="nav-item" href="https://cmpofficepgp.org/camp-office-suite/"><span class="ico">🏠</span><span class="label">Dashboard</span></a>
@@ -423,19 +439,24 @@ body[dir="rtl"] .main-col{ direction:rtl; }
     <div class="main-col">
 
   <div class="topbar">
-    <div class="brand"><button class="mobile-menu-btn" id="mobileMenuBtn" aria-label="Menu">☰</button> <span class="brand-logo" id="brandLogo"></span> <span id="pageHeadingBox"></span></div>
+    <div class="brand"><span class="brand-logo" id="brandLogo"></span> <span id="pageHeadingBox"></span></div>
     <div class="right-controls">
-      <span class="user-badge" id="userBadge"></span>
+      <button class="mobile-menu-btn" id="mobileMenuBtn" aria-label="Menu">☰</button>
       <div class="theme-switch-wrap">
         <button class="theme-btn" id="themeBtn" onclick="toggleThemePicker()" title="تھیم منتخب کریں / Choose Theme">🎨</button>
         <div class="theme-picker" id="themePicker"></div>
       </div>
       <button class="lang-btn" id="langBtn" onclick="toggleLang()">اردو</button>
+      <img class="topbar-logo-sm" src="https://cmpofficepgp.org/camp-office-suite/logo-public-prosecution.png" alt="Public Prosecution Punjab">
+    </div>
+  </div>
+  <div class="userbar-ce">
+    <div class="user-chip-sm"><span class="user-badge" id="userBadge"></span></div>
+    <div class="ub-actions">
       <button class="help-btn" id="helpBtn" onclick="openHelp()" data-en="❓ Help" data-ur="❓ مدد">❓ Help</button>
       <button class="logout-btn" id="logoutBtn" onclick="rosterSignOut()" data-en="Sign out" data-ur="سائن آؤٹ">Sign out</button>
     </div>
   </div>
-
   <div class="help-overlay" id="helpOverlay">
     <div class="help-shell">
       <div class="help-toolbar">
@@ -1765,15 +1786,15 @@ body[dir="rtl"] .main-col{ direction:rtl; }
   // switching just sets one attribute on <body> and every existing var(--navy)/var(--gold)/etc.
   // rule re-colors itself — no re-render of the roster data needed.
   var THEMES = [
-    { id:'1', nameEn:'Navy & Gold (Official)', nameUr:'نیوی و گولڈ (سرکاری)', navy:'#12203f', gold:'#c8952a' },
-    { id:'2', nameEn:'Maroon & Silver (Judicial)', nameUr:'مرون و سلور (عدالتی)', navy:'#5c1a1a', gold:'#9a9a9a' },
-    { id:'3', nameEn:'Emerald & Cream (Classic)', nameUr:'زمردی و کریم (کلاسیک)', navy:'#0f3d2e', gold:'#c9a227' },
-    { id:'4', nameEn:'Charcoal & Bronze (Modern)', nameUr:'چارکول و برونز (ماڈرن)', navy:'#2b2b2e', gold:'#b5793a' },
-    { id:'5', nameEn:'Forest & Ivory (Soft)', nameUr:'فارسٹ و آئیوری (سوفٹ)', navy:'#254d32', gold:'#d1a85c' },
-    { id:'6', nameEn:'Slate & Amber (High Contrast)', nameUr:'سلیٹ و ایمبر (ہائی کنٹراسٹ)', navy:'#1e293b', gold:'#f59e0b' },
-    { id:'7', nameEn:'Pakistan Green & Gold (National)', nameUr:'پاکستان سبز و گولڈ (قومی)', navy:'#01411c', gold:'#f4c430' }
+    { id:'navy', nameEn:'Navy', nameUr:'نیلا', navy:'#2A5A84', gold:'#B8860B' },
+    { id:'green', nameEn:'Green', nameUr:'سبز', navy:'#1a6b45', gold:'#C9A227' },
+    { id:'teal', nameEn:'Teal', nameUr:'ٹیل', navy:'#128f89', gold:'#96762a' },
+    { id:'ocean', nameEn:'Ocean', nameUr:'سمندری', navy:'#1670a0', gold:'#c9852a' },
+    { id:'sepia', nameEn:'Sepia', nameUr:'بھورا', navy:'#6d5330', gold:'#a3742a' },
+    { id:'contrast', nameEn:'Contrast', nameUr:'کنٹراسٹ', navy:'#111111', gold:'#8a4b00' },
+    { id:'night', nameEn:'Night', nameUr:'تاریک', navy:'#5b7bb0', gold:'#d4a13d' }
   ];
-  var currentTheme = '1';
+  var currentTheme = (function(){ try{ return localStorage.getItem('cmpTheme') || 'navy'; }catch(e){ return 'navy'; } })();
   function renderThemePicker(){
     var box = document.getElementById('themePicker');
     box.innerHTML = THEMES.map(function(t){
@@ -1789,6 +1810,7 @@ body[dir="rtl"] .main-col{ direction:rtl; }
   function setTheme(id){
     currentTheme = id;
     document.body.setAttribute('data-theme', id);
+    try{ localStorage.setItem('cmpTheme', id); }catch(e){}
     renderThemePicker();
     document.getElementById('themePicker').classList.remove('open');
   }
@@ -2613,6 +2635,7 @@ body[dir="rtl"] .main-col{ direction:rtl; }
 
   document.getElementById('brandLogo').innerHTML = PUNJAB_EMBLEM_SVG;
   renderPageHeading();
+  document.body.setAttribute('data-theme', currentTheme);
   renderThemePicker();
   buildWeek();
 </script>
