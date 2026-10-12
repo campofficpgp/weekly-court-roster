@@ -389,12 +389,14 @@ body[dir="rtl"] .main-col{ direction:rtl; }
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script><script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-check-compat.js"></script><script src="/app-check.js"></script>
 <!-- PWA: installable app -->
 <link rel="manifest" href="/manifest.webmanifest">
 <meta name="theme-color" content="#17294a">
 <meta name="mobile-web-app-capable" content="yes">
 <script src="/pwa.js" defer></script>
+<script>window.CAMP_REQUIRE_APPROVED=true;window.CAMP_WRITE_ROLES=['admin','super_admin'];</script>
+<script src="/auth-guard.js" defer></script>
 </head>
 <body>
 
@@ -406,6 +408,7 @@ body[dir="rtl"] .main-col{ direction:rtl; }
       <div class="field"><label data-en="Password" data-ur="پاس ورڈ">Password</label><input type="password" id="login_password" autocomplete="current-password"></div>
       <div class="btn primary" id="loginBtn" style="width:100%; text-align:center;" data-en="Sign in" data-ur="سائن اِن">Sign in</div>
       <div style="text-align:center;margin-top:10px;"><a href="#" id="forgotPasswordLink" style="font-size:12.5px;color:#1F4E78;text-decoration:underline;" data-en="Forgot password?" data-ur="پاس ورڈ بھول گئے؟">Forgot password?</a></div>
+    <div style="text-align:center;margin-top:8px;"><a href="https://cmpofficepgp.org/camp-office-suite/#request" style="font-size:12.5px;color:#1F4E78;font-weight:700;text-decoration:underline;">اکاؤنٹ نہیں ہے؟ درخواست دیں / Request an account</a></div>
       <div class="login-error" id="loginError"></div>
       <div class="login-hint" data-en="Use the same office login as the other Camp Office systems." data-ur="وہی دفتری لاگ اِن استعمال کریں جو دیگر کیمپ آفس سسٹمز میں چلتا ہے۔">Use the same office login as the other Camp Office systems.</div>
     </div>
@@ -663,7 +666,7 @@ body[dir="rtl"] .main-col{ direction:rtl; }
     btn.setAttribute('data-busy','1');
     btn.textContent = isUrdu ? 'سائن اِن ہو رہا ہے…' : 'Signing in…'; /* visible feedback so the button never looks stuck/frozen */
     auth.signInWithEmailAndPassword(email, pw).catch(function(){
-      rosterLoginError(isUrdu ? 'لاگ اِن ناکام: غلط ای میل یا پاس ورڈ' : 'Sign in failed: wrong email or password');
+      rosterLoginError('ای میل یا پاس ورڈ درست نہیں / Email or password is incorrect.');
       btn.removeAttribute('data-busy');
       btn.textContent = isUrdu ? 'سائن اِن' : 'Sign in';
     });
