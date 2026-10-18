@@ -320,6 +320,32 @@ html,body{overflow-x:hidden;}
     }
   }
 
+  /* Real printing (Ctrl+P / the Print button). Kept in its own block, marked with (min-width:0px), so the
+     "Download PDF" capture -- which temporarily switches every OTHER print rule on -- does not pick these up.
+     Bug found 2026-10-17: the Print / Preview window is a fixed, scrolling box, so every printed page repeated
+     the same first screenful of the roster and the remaining benches never printed. Here everything except the
+     roster sheet is removed and the preview window is flattened into ordinary page content, so each bench
+     flows onto its own landscape A4 sheet. */
+  @page{ size:A4 landscape; margin:10mm; }
+  @media print and (min-width:0px){
+    html,body{background:#fff !important;}
+    .login-overlay, .help-overlay{display:none !important;}
+    .main-col > *:not(#rosterPrintModal){display:none !important;}
+    #rosterPrintModal, #rosterPrintModal.open{
+      display:block !important; position:static !important; inset:auto !important; padding:0 !important;
+      background:none !important; overflow:visible !important; z-index:auto !important;
+    }
+    #rosterPrintModal .modal-panel{
+      display:block !important; max-width:none !important; width:100% !important; max-height:none !important;
+      overflow:visible !important; margin:0 !important; border-radius:0 !important; box-shadow:none !important; background:none !important;
+    }
+    #rosterPrintModal .modal-panel > div{padding:0 !important;}
+    #rosterPrintModal .modal-close, #rosterPrintModal .actions{display:none !important;}
+    #rosterPrintArea{position:static !important; width:100% !important; border:none !important; border-radius:0 !important; padding:0 !important; background:#fff !important;}
+    #rosterPrintArea thead{display:table-header-group;}
+    #rosterPrintArea *{-webkit-print-color-adjust:exact; print-color-adjust:exact;}
+  }
+
 .app-footer{
   text-align:left;
   direction:ltr;
@@ -1655,7 +1681,7 @@ body[dir="rtl"] .main-col{ direction:rtl; }
     }
   });
 
-  function closeRosterPrint(){ editingPrintField = null; editingStamp = null; document.getElementById('rosterPrintModal').classList.remove('open'); }
+  function closeRosterPrint(){ editingPrintField = null; editingStamp = null; document.getElementById('rosterPrintModal').classList.remove('open'); document.getElementById('rosterPrintArea').innerHTML = ''; }
 
   /* ================= Real "Download PDF" — an actual file, not the print dialog =================
      The old Download PDF button just called window.print() and relied on the user picking
@@ -1669,7 +1695,7 @@ body[dir="rtl"] .main-col{ direction:rtl; }
       try{ rules = sheet.cssRules; }catch(e){ return; }
       if(!rules) return;
       Array.prototype.forEach.call(rules, function(rule){
-        if(rule.type === CSSRule.MEDIA_RULE && rule.media && rule.media.mediaText.indexOf("print") !== -1){
+        if(rule.type === CSSRule.MEDIA_RULE && rule.media && rule.media.mediaText.indexOf("print") !== -1 && rule.media.mediaText.indexOf("min-width: 0px") === -1){
           touched.push({rule: rule, original: rule.media.mediaText});
           try{ rule.media.mediaText = "all"; }catch(e){/* ignore */}
         }
