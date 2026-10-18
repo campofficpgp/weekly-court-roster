@@ -1464,10 +1464,19 @@ body[dir="rtl"] .main-col{ direction:rtl; }
     var r = SAVED_ROSTERS.find(function(x){ return x.id === id; });
     if(!r) return;
     currentRoster = JSON.parse(JSON.stringify(r));
-    activeBenchIndex = 0;
+    /* Open on the first bench (in the same I, II, III... order as the tabs) that actually has cases. The old code
+       opened benches[0] -- whichever bench happened to be stored first, often an empty one such as "Bench - III" --
+       so a saved roster looked blank and seemed not to have opened at all (bug found 2026-10-18). */
+    var order = benchDisplayOrder(currentRoster.benches);
+    var firstWithCases = order.filter(function(bi){
+      return (currentRoster.benches[bi].days || []).some(function(d){ return d && d.cases && d.cases.length; });
+    })[0];
+    activeBenchIndex = (firstWithCases !== undefined) ? firstWithCases : (order.length ? order[0] : 0);
     document.getElementById('weekStart').value = r.weekStart;
     renderAll(currentRoster);
     closeSavedRosters();
+    var tabs = document.getElementById('benchTabs');
+    if(tabs && tabs.scrollIntoView){ try { tabs.scrollIntoView({behavior:'smooth', block:'start'}); } catch(e){ tabs.scrollIntoView(); } }
   }
   function deleteSavedRoster(id){
     if(!confirm(isUrdu ? 'یہ محفوظ شدہ روسٹر حذف کریں؟' : 'Delete this saved roster?')) return;
