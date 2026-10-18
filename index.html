@@ -252,20 +252,36 @@ html,body{overflow-x:hidden;}
   .case-number-row.closed .case-row-del{top:5px;}
 
   .print-sheet{background:#fff; border:1px solid var(--border); border-radius:var(--radius-lg); padding:30px 34px; font-size:13px;}
-  .print-sheet .p-head{font-weight:700; font-size:15px; white-space:pre-line; line-height:1.4;}
+  .print-sheet .p-head{font-weight:700; font-size:14px; color:#1B3F63; white-space:pre-line; line-height:1.4; display:block;}
   .print-sheet .p-sub{font-size:12px; color:var(--muted); white-space:pre-line; line-height:1.4;}
   /* The letterhead lines double as an inline editor (✎ edit / ↺ reset) right on the print sheet. */
   .print-sheet .p-head-edit-row{display:flex; align-items:center; justify-content:center; gap:6px;}
   .print-sheet .p-head-row{margin-bottom:16px;}
-  .print-sheet .p-logo{height:52px; margin:0 auto 8px; display:block;}
-  .print-sheet .p-logo img{height:52px; width:auto; display:block; margin:0 auto;}
+  /* Letterhead: Government of Punjab emblem on the LEFT, office heading centred, gold + navy double rule under it.
+     Fixed colours (not the on-screen theme) so the printed / downloaded sheet always looks the same. */
+  .print-sheet .p-lh{display:flex; align-items:center; gap:12px; direction:ltr; margin-bottom:8px;}
+  .print-sheet .p-logo{flex:0 0 66px; height:52px; margin:0;}
+  .print-sheet .p-logo img{height:52px; width:auto; display:block; margin:0;}
+  .print-sheet .p-lh-mid{flex:1; min-width:0; text-align:center;}
+  .print-sheet .p-lh-sp{flex:0 0 66px;}
+  .print-sheet .p-head-row{margin-bottom:0;}
+  .print-sheet .p-rule{border-top:2.2px solid #B8860B; border-bottom:.7px solid #1B3F63; height:3px; margin:0 0 12px;}
+  .print-sheet .p-title{text-align:center; font-weight:700; font-size:14px; letter-spacing:.08em; color:#1B3F63; margin:0 0 8px;}
+  @media (max-width:600px){
+    .print-sheet{padding:18px 12px; overflow-x:auto;}
+    .print-sheet .p-logo{flex-basis:44px; height:35px;}
+    .print-sheet .p-logo img{height:35px;}
+    .print-sheet .p-lh-sp{display:none;}
+    .print-sheet .p-head{font-size:12px;}
+    .print-sheet .p-sign{flex-direction:column;}
+  }
   .print-sheet .p-sub-row{margin-bottom:16px;}
   .print-sheet .p-head-edit-row .heading-icon{cursor:pointer; color:var(--gold-deep); font-weight:700; font-size:11px; opacity:.75;}
   .print-sheet .p-head-edit-row .heading-icon:hover{opacity:1;}
   .print-sheet .print-heading-input{font-size:12.5px; padding:3px 6px; border-radius:5px; border:1px solid var(--gold-deep); min-width:260px; font-family:inherit; text-align:center;}
   .print-sheet .p-week{display:flex; justify-content:space-between; margin-bottom:14px; font-size:13px; font-weight:600;}
   .print-sheet table{width:100%; border-collapse:collapse; font-size:11.5px;}
-  .print-sheet th{background:var(--navy); color:#fff; padding:6px; font-size:10.5px;}
+  .print-sheet th{background:#2A5A84; color:#fff; padding:6px; font-size:10.5px;}
   .print-sheet td{padding:6px; border:1px solid var(--border); vertical-align:top;}
   .print-sheet .p-sign{display:flex; justify-content:space-between; align-items:flex-start; margin-top:24px; font-size:12.5px; gap:16px;}
   /* Sign-off stamps: left = prepared by, right = approved by. Each is a small editable
@@ -273,6 +289,10 @@ html,body{overflow-x:hidden;}
   .print-sheet .p-stamp-block{flex:1; min-width:0;}
   .print-sheet .p-stamp-block[data-side="right"]{text-align:right;}
   [dir="rtl"] .print-sheet .p-stamp-block[data-side="right"]{text-align:left;}
+  .print-sheet .p-stamp-label{font-size:9.5px; font-weight:700; letter-spacing:.08em; color:var(--muted); text-transform:uppercase;}
+  .print-sheet .p-sign-line{width:190px; max-width:100%; border-top:1px solid #222; margin:30px 0 6px;}
+  .print-sheet .p-stamp-block[data-side="right"] .p-sign-line{margin-left:auto;}
+  [dir="rtl"] .print-sheet .p-stamp-block[data-side="right"] .p-sign-line{margin-left:0; margin-right:auto;}
   .print-sheet .p-stamp-line{font-size:11.5px; color:var(--navy); line-height:1.5; white-space:pre-line;}
   .print-sheet .p-stamp-line:first-child{font-weight:700;}
   .print-sheet .p-stamp-empty{color:var(--muted); font-style:italic; font-weight:400;}
@@ -633,9 +653,11 @@ body[dir="rtl"] .main-col{ direction:rtl; }
       <div class="modal-close"><span onclick="closeRosterPrint()">✕</span></div>
       <div style="padding:0 20px 20px;">
         <div id="rosterPrintArea" class="print-sheet"></div>
-        <div class="actions" style="padding:16px 0 0; display:flex; gap:10px;">
+        <div class="actions" style="padding:16px 0 0; display:flex; gap:10px; flex-wrap:wrap;">
           <div class="btn primary" onclick="window.print()" data-en="🖨️ Print" data-ur="🖨️ پرنٹ کریں">🖨️ Print</div>
           <div class="btn ghost" onclick="downloadRosterPdf()" title="Downloads a ready PDF file directly" data-en="📄 Download PDF" data-ur="📄 PDF ڈاؤن لوڈ کریں">📄 Download PDF</div>
+          <div class="btn ghost" onclick="downloadRosterDocx()" title="Downloads a Word file (each bench on its own page)" data-en="📝 Download Word" data-ur="📝 Word ڈاؤن لوڈ کریں">📝 Download Word</div>
+          <div class="btn ghost" onclick="downloadRosterXlsx()" title="Downloads an Excel file (each bench on its own sheet)" data-en="📊 Download Excel" data-ur="📊 Excel ڈاؤن لوڈ کریں">📊 Download Excel</div>
           <div class="btn ghost" onclick="closeRosterPrint()" data-en="Close" data-ur="بند کریں">Close</div>
         </div>
       </div>
@@ -782,7 +804,16 @@ body[dir="rtl"] .main-col{ direction:rtl; }
   });
 
   var isUrdu = false;
-  var PUNJAB_LOGO_HTML = '<img src="https://cmpofficepgp.org/camp-office-suite/logo-punjab-govt.png" alt="Government of Punjab">';
+  // The Government of Punjab emblem is embedded in the page itself (not fetched from another address), so the
+  // on-screen letterhead, the PDF, the Word file and the Excel file always get exactly the same picture.
+  var PUNJAB_LOGO_B64 = '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';
+  var PUNJAB_LOGO_RATIO = 300 / 236;
+  var PUNJAB_LOGO_HTML = '<img src="data:image/png;base64,'+PUNJAB_LOGO_B64+'" alt="Government of Punjab">';
+  function punjabLogoBytes(){
+    var bin = atob(PUNJAB_LOGO_B64), out = new Uint8Array(bin.length);
+    for(var i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+    return out;
+  }
   var activeBenchIndex = 0;
 
   // Officer (APG/DPG) — same starter list used in the Case Entry / Monthly Progress Report module,
@@ -1520,7 +1551,8 @@ body[dir="rtl"] .main-col{ direction:rtl; }
       '<span class="heading-icon stamp-edit" data-side="'+side+'" title="'+(isUrdu?'ترمیم':'Edit')+'">✎</span>' +
       '<span class="heading-icon stamp-clear" data-side="'+side+'" title="'+(isUrdu?'صاف کریں':'Clear')+'">✕</span>' +
       '</div>') : '';
-    return '<div class="p-stamp-block" data-side="'+side+'">' + body + icons + '</div>';
+    var label = (side === 'left') ? 'Prepared by' : 'Approved by';
+    return '<div class="p-stamp-block" data-side="'+side+'"><div class="p-stamp-label">'+label+'</div><div class="p-sign-line"></div>' + body + icons + '</div>';
   }
   function buildSignHtml(editable){
     return '<div class="p-sign">' + stampBlockHtml('left', stampLeft, editable) + stampBlockHtml('right', stampRight, editable) + '</div>';
@@ -1552,8 +1584,11 @@ body[dir="rtl"] .main-col{ direction:rtl; }
     var weekLine = single
       ? ('<div class="p-week"><span>'+dayHeadName(parseInt(dayIndex,10))+'</span><span>'+r.dates[parseInt(dayIndex,10)]+'</span></div>')
       : ('<div class="p-week"><span>Week</span><span>'+r.dates[0]+' – '+r.dates[4]+'</span></div>');
-    return '<div class="p-logo">'+PUNJAB_LOGO_HTML+'</div>' +
-      printHeaderRowHtml(fieldKey, value, 'p-head', editable) +
+    return '<div class="p-lh"><div class="p-logo">'+PUNJAB_LOGO_HTML+'</div>' +
+      '<div class="p-lh-mid"'+(isUrdu ? ' style="direction:rtl;"' : '')+'>' + printHeaderRowHtml(fieldKey, value, 'p-head', editable) + '</div>' +
+      '<div class="p-lh-sp"></div></div>' +
+      '<div class="p-rule"></div>' +
+      '<div class="p-title">WEEKLY COURT ROSTER</div>' +
       weekLine;
   }
   // dayIndex: null/undefined = whole week (original behaviour); 0-4 = only that one weekday's
@@ -1752,7 +1787,7 @@ body[dir="rtl"] .main-col{ direction:rtl; }
       pdf.save(filename);
     });
   }
-  function downloadRosterPdf(){
+  function downloadRosterPdfImage(){
     if(!currentRoster){
       alert(isUrdu ? 'پہلے روسٹر بنائیں' : 'Please generate a roster first');
       return;
@@ -1779,6 +1814,619 @@ body[dir="rtl"] .main-col{ direction:rtl; }
       closeRosterPrint();
     });
   }
+
+
+  /* ================= Real PDF / Word / Excel downloads of the roster =================
+     Same approved look as the Monthly Progress Report files: A4 landscape, Government of Punjab emblem on the
+     LEFT, centred office heading, gold + navy rule, navy table header, footer "office | Generated date | Page x of y".
+     Every bench starts on its OWN page (PDF page / Word page / Excel sheet). The sign-off block (Prepared by /
+     Approved by) is placed ONCE, at the end of the LAST page only.
+     The files follow whatever the Print / Preview window is showing: "This Bench Only" or "All Benches", and
+     "Whole week" or a single day. Libraries are loaded on demand (the old picture-based PDF stays as a fallback). */
+  var RLIBS = {
+    pdflib:['https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js','https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js'],
+    jszip:['https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js','https://unpkg.com/jszip@3.10.1/dist/jszip.min.js'],
+    docx:['https://cdn.jsdelivr.net/npm/docx@9.7.1/dist/index.iife.js','https://unpkg.com/docx@9.7.1/dist/index.iife.js']
+  };
+  var RLIBCHK = { pdflib:function(){ return window.PDFLib; }, jszip:function(){ return window.JSZip; }, docx:function(){ return window.docx; } };
+  function rAddScript(src){ return new Promise(function(res, rej){ var el = document.createElement('script'); el.src = src; el.onload = res; el.onerror = function(){ rej(new Error('load ' + src)); }; document.head.appendChild(el); }); }
+  async function rLoadLib(name){
+    if(RLIBCHK[name]()) return;
+    var err = null;
+    for(var i = 0; i < RLIBS[name].length; i++){
+      try{ await rAddScript(RLIBS[name][i]); if(RLIBCHK[name]()) return; }catch(e){ err = e; }
+    }
+    throw err || new Error('library ' + name);
+  }
+  var MONTHS_EN_R = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  function xmlEsc(v){ return String(v == null ? '' : v).replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g,'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  function colLetter(i){ var s2 = ''; i++; while(i > 0){ var m = (i - 1) % 26; s2 = String.fromCharCode(65 + m) + s2; i = Math.floor((i - 1) / 26); } return s2; }
+  function stampLines(st){ return [st.name, st.designation, st.address].filter(function(v){ return v && String(v).trim(); }).join('\n').split('\n').filter(function(v){ return v.trim(); }); }
+  var AR_RE = /[؀-ۿ]/;
+  function rosterDownloadBlob(blob, name){
+    var a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    setTimeout(function(){ URL.revokeObjectURL(a.href); }, 4000);
+  }
+  // Everything the three files need, taken from the same data the Print / Preview window shows.
+  function rosterExportModel(){
+    if(!currentRoster) return null;
+    var r = currentRoster;
+    var daySel = document.getElementById('rosterDaySelect');
+    var dayIndex = (daySel && daySel.value !== "") ? parseInt(daySel.value, 10) : null;
+    var single = (dayIndex !== null);
+    var days = single ? [dayIndex] : [0,1,2,3,4];
+    var list;
+    if(printMode === 'active'){ var ab = r.benches[activeBenchIndex]; list = ab ? [ab] : []; }
+    else { list = benchDisplayOrder(r.benches).map(function(bi){ return r.benches[bi]; }); }
+    if(!list.length) return null;
+    var benches = list.map(function(b){
+      return {
+        name: String(b.name || ''), officer: String(b.officer || ''),
+        judges: (b.judgesList || []).join(', '), notes: (b.judgesNotes || []).filter(function(n){ return String(n).trim(); }),
+        cols: days.map(function(i){
+          var d = b.days && b.days[i];
+          return { head: DAYS_EN[i], date: String(r.dates[i] || ''),
+                   cases: (d && d.cases ? d.cases : []).map(function(c){ return String(c == null ? '' : c).replace(/\t/g, ' ').trim(); }).filter(function(c){ return c; }) };
+        })
+      };
+    });
+    var wk = String(r.weekStart || 'Roster').replace(/[^A-Za-z0-9]+/g, '-');
+    var tag = (single ? ('-' + DAYS_EN[dayIndex]) : '');
+    if(printMode === 'active'){ tag += '-' + (String(list[0].name || 'Bench').replace(/[^A-Za-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'Bench'); }
+    var now = new Date();
+    return {
+      r: r, single: single, days: days, benches: benches,
+      headLines: (isUrdu ? headingUr : headingEn).split('\n').filter(function(l){ return l.trim(); }),
+      weekText: single ? (DAYS_EN[dayIndex] + '  —  ' + r.dates[dayIndex]) : ('Week:  ' + r.dates[0] + '  –  ' + r.dates[4]),
+      fileBase: 'CampOffice-WeeklyRoster-' + wk + tag,
+      genDate: now.getDate() + ' ' + MONTHS_EN_R[now.getMonth()] + ' ' + now.getFullYear(),
+      title: 'Weekly Court Roster — ' + (single ? (DAYS_EN[dayIndex] + ' ' + r.dates[dayIndex]) : (r.dates[0] + ' to ' + r.dates[4]))
+    };
+  }
+
+  /* ---------------- PDF (pdf-lib, real vector text) ---------------- */
+  function pdfLatin(sx){ return /^[\x20-\x7E -ÿ–—‘’“”•]*$/.test(sx); }
+  function pdfSafe(sx){ return String(sx == null ? '' : sx).replace(/[^\x20-\x7E -ÿ–—‘’“”•]/g, '?'); }
+  function rasterFontStr(px, bold, sc){ return (bold ? 'bold ' : '') + (px * sc) + 'px "Noto Nastaliq Urdu","Jameel Noori Nastaleeq","Segoe UI",Arial,sans-serif'; }
+  function rasterText(text, px, bold, color){
+    var sc = 3, cv = document.createElement('canvas'), cx = cv.getContext('2d');
+    var font = rasterFontStr(px, bold, sc);
+    cx.font = font;
+    var rtl = AR_RE.test(text);
+    cx.direction = rtl ? 'rtl' : 'ltr';
+    var w = Math.ceil(cx.measureText(text).width) + 8, h = Math.ceil(px * sc * 1.9);
+    cv.width = w; cv.height = h;
+    cx = cv.getContext('2d'); cx.font = font; cx.direction = rtl ? 'rtl' : 'ltr';
+    cx.fillStyle = color || '#111'; cx.textBaseline = 'middle'; cx.textAlign = rtl ? 'right' : 'left';
+    cx.fillText(text, rtl ? w - 4 : 4, h / 2);
+    return new Promise(function(res){ cv.toBlob(function(b){ b.arrayBuffer().then(function(ab){ res({bytes:new Uint8Array(ab), w:w / sc, h:h / sc}); }); }, 'image/png'); });
+  }
+  function rasterWrap(text, px, bold, width){
+    var cx = document.createElement('canvas').getContext('2d'); cx.font = rasterFontStr(px, bold, 1);
+    var lim = width / 0.78, words = text.split(/\s+/).filter(Boolean), lines = [], cur = '';
+    words.forEach(function(w0){
+      var t0 = cur ? cur + ' ' + w0 : w0;
+      if(cx.measureText(t0).width <= lim || !cur){ cur = t0; } else { lines.push(cur); cur = w0; }
+    });
+    if(cur) lines.push(cur);
+    return lines.length ? lines : [text];
+  }
+
+  async function buildRosterPdf(){
+    var PL = window.PDFLib, X = rosterExportModel();
+    var doc = await PL.PDFDocument.create();
+    var fR = await doc.embedFont(PL.StandardFonts.Helvetica), fB = await doc.embedFont(PL.StandardFonts.HelveticaBold), fI = await doc.embedFont(PL.StandardFonts.HelveticaOblique);
+    var PW = 841.89, PH = 595.28, MG = 34, TOP = 26, BOT = 40;
+    var NAVY = PL.rgb(0.106, 0.247, 0.388), NAVY2 = PL.rgb(0.165, 0.353, 0.518), GOLDL = PL.rgb(0.722, 0.525, 0.043);
+    var INK = PL.rgb(0.09, 0.11, 0.14), GREYTX = PL.rgb(0.35, 0.38, 0.42), WHITE = PL.rgb(1, 1, 1), REDTX = PL.rgb(0.7, 0.15, 0.12);
+    var ZEBRA = PL.rgb(0.957, 0.968, 0.982), BORDER = PL.rgb(0.74, 0.79, 0.85), BOXBG = PL.rgb(0.965, 0.973, 0.984);
+    var BS = 8.6, LH = 11.4, PADX = 5, PADV = 4;
+    var nCols = X.days.length, colW = (PW - 2 * MG) / nCols;
+    var pages = [], page = null, y = 0;
+    function hline(x1, x2, yy, th, col){ page.drawLine({start:{x:x1, y:yy}, end:{x:x2, y:yy}, thickness:th, color:col}); }
+    function txt(t0, o){ page.drawText(pdfSafe(t0), o); }
+    function newPage(){ page = doc.addPage([PW, PH]); pages.push(page); y = PH - TOP; }
+    function wrapLatin(text, font, size, width){
+      var words = pdfSafe(text).split(/\s+/).filter(Boolean), lines = [], cur = '';
+      words.forEach(function(w0){
+        var t0 = cur ? cur + ' ' + w0 : w0;
+        if(font.widthOfTextAtSize(t0, size) <= width || !cur){ cur = t0; } else { lines.push(cur); cur = w0; }
+      });
+      if(cur) lines.push(cur);
+      var out = [];
+      lines.forEach(function(ln){
+        while(font.widthOfTextAtSize(ln, size) > width && ln.length > 2){
+          var k = ln.length; while(k > 1 && font.widthOfTextAtSize(ln.slice(0, k), size) > width) k--;
+          out.push(ln.slice(0, k)); ln = ln.slice(k);
+        }
+        out.push(ln);
+      });
+      return out.length ? out : [''];
+    }
+    // Lays text out into lines that fit `width` (Latin text as real text, Urdu/other scripts as small pictures).
+    async function layout(text, size, bold, hex, width){
+      var out = [], font = bold ? fB : fR;
+      var paras = String(text == null ? '' : text).replace(/\t/g, ' ').split(/\r?\n/);
+      for(var pi = 0; pi < paras.length; pi++){
+        var p0 = paras[pi]; if(!p0.trim()) continue;
+        if(pdfLatin(p0)){
+          wrapLatin(p0, font, size, width).forEach(function(l){ out.push({s:l, w:font.widthOfTextAtSize(l, size), bold:bold}); });
+        } else {
+          var rl = rasterWrap(p0, size, bold, width);
+          for(var li = 0; li < rl.length; li++){
+            var im = await rasterText(rl[li], size, bold, hex), emb = await doc.embedPng(im.bytes), hh = size * 1.55;
+            out.push({emb:emb, w:im.w * (hh / im.h), h:hh, rtl:AR_RE.test(rl[li])});
+          }
+        }
+      }
+      return out;
+    }
+    // Draws laid-out lines inside a box that starts at (x, yTop) and is `width` wide.
+    function drawLines(lines, x, yTop, width, o){
+      var yy = yTop, lh = o.lh || LH;
+      lines.forEach(function(ln){
+        var al = o.align || ((ln.emb && ln.rtl) ? 'r' : 'l');
+        var xx = al === 'c' ? x + (width - ln.w) / 2 : (al === 'r' ? x + width - ln.w : x);
+        if(ln.emb){ page.drawImage(ln.emb, {x:xx, y:yy - lh / 2 - ln.h / 2, width:ln.w, height:ln.h}); }
+        else { page.drawText(ln.s, {x:xx, y:yy - lh / 2 - o.size * 0.35, size:o.size, font:o.font || (ln.bold ? fB : fR), color:o.color}); }
+        yy -= lh;
+      });
+      return yy;
+    }
+    async function centredLine(text, size, bold, color, hex){
+      var ls = await layout(text, size, bold, hex, PW - 2 * MG - 160);
+      var h = size * 1.45;
+      ls.forEach(function(ln){
+        if(ln.emb){ page.drawImage(ln.emb, {x:(PW - ln.w) / 2, y:y - h + 1, width:ln.w, height:ln.h}); }
+        else { page.drawText(ln.s, {x:(PW - ln.w) / 2, y:y - size, size:size, font:bold ? fB : fR, color:color}); }
+        y -= h;
+      });
+    }
+    var emblem = await doc.embedPng(punjabLogoBytes());
+
+    async function letterhead(){
+      var headTop = y;
+      page.drawImage(emblem, {x:MG, y:y - 46, width:46 * PUNJAB_LOGO_RATIO, height:46});
+      y -= 1;
+      for(var i = 0; i < X.headLines.length; i++){ await centredLine(X.headLines[i], i === 0 ? 14.5 : 9.6, i === 0, i === 0 ? NAVY : GREYTX, i === 0 ? '#1b3f63' : '#555555'); }
+      y = Math.min(y, headTop - 48) - 3;
+      hline(MG, PW - MG, y, 2.2, GOLDL); hline(MG, PW - MG, y - 3.6, 0.7, NAVY);
+      y -= 15;
+      await centredLine('WEEKLY COURT ROSTER', 14, true, NAVY, '#1b3f63');
+      var sw = fR.widthOfTextAtSize(pdfSafe(X.weekText), 10);
+      txt(X.weekText, {x:(PW - sw) / 2, y:y - 9, size:10, font:fR, color:GREYTX});
+      y -= 19;
+    }
+    async function infoBox(B){
+      var boxW = PW - 2 * MG, ix = MG + 16, iw = boxW - 32;
+      var nameL = await layout(B.name || '—', 10.5, true, '#111111', boxW * 0.36);
+      var offL = await layout(B.officer || '—', 10.5, true, '#111111', boxW * 0.5);
+      var judL = B.judges ? await layout(B.judges, 9, false, '#333333', iw) : [];
+      var notL = [];
+      for(var i = 0; i < B.notes.length; i++){ notL = notL.concat(await layout(B.notes[i], 8.4, false, '#b3261e', iw)); }
+      var row1 = 9 + 4 + Math.max(nameL.length, offL.length) * 13;
+      var h = 9 + row1 + (judL.length ? 6 + 9 + 3 + judL.length * 11.4 : 0) + (notL.length ? 5 + notL.length * 10.6 : 0) + 7;
+      page.drawRectangle({x:MG, y:y - h, width:boxW, height:h, color:BOXBG, borderColor:BORDER, borderWidth:0.8});
+      page.drawRectangle({x:MG, y:y - h, width:4, height:h, color:NAVY2});
+      var yy = y - 9;
+      txt('BENCH', {x:ix, y:yy - 7, size:7.2, font:fB, color:GREYTX});
+      txt('OFFICER', {x:ix + boxW * 0.40, y:yy - 7, size:7.2, font:fB, color:GREYTX});
+      drawLines(nameL, ix, yy - 13, boxW * 0.36, {size:10.5, color:INK, lh:13});
+      drawLines(offL, ix + boxW * 0.40, yy - 13, boxW * 0.5, {size:10.5, color:INK, lh:13});
+      yy -= row1;
+      if(judL.length){
+        yy -= 6; txt('JUDGES', {x:ix, y:yy - 7, size:7.2, font:fB, color:GREYTX}); yy -= 12;
+        yy = drawLines(judL, ix, yy, iw, {size:9, color:PL.rgb(0.2, 0.2, 0.2), lh:11.4});
+      }
+      if(notL.length){ yy -= 5; drawLines(notL, ix, yy, iw, {size:8.4, color:REDTX, lh:10.6}); }
+      y -= h + 10;
+    }
+    var HDR_H = 30;
+    function tableHeader(B){
+      var top = y, x = MG;
+      B.cols.forEach(function(c){
+        page.drawRectangle({x:x, y:top - HDR_H, width:colW, height:HDR_H, color:NAVY2, borderColor:WHITE, borderWidth:0.6});
+        var w1 = fB.widthOfTextAtSize(pdfSafe(c.head), 9.4), w2 = fR.widthOfTextAtSize(pdfSafe(c.date), 8);
+        txt(c.head, {x:x + (colW - w1) / 2, y:top - 12.5, size:9.4, font:fB, color:WHITE});
+        txt(c.date, {x:x + (colW - w2) / 2, y:top - 24, size:8, font:fR, color:WHITE});
+        x += colW;
+      });
+      y -= HDR_H;
+    }
+    function contHeader(B){
+      txt('Weekly Court Roster  —  ' + (B.name || 'Bench') + '  —  ' + X.weekText.replace(/\s{2,}/g, ' ') + '   (continued)', {x:MG, y:y - 8, size:8, font:fI, color:GREYTX});
+      hline(MG, PW - MG, y - 13, 0.6, BORDER); y -= 24;
+    }
+    var BOTLIM = BOT + 8, contPage = false, pageTopY = 0;
+    function breakPage(B){ newPage(); contHeader(B); tableHeader(B); contPage = true; pageTopY = y; }
+    // One horizontal band of the table = the n-th case of every day column. A band is never cut in the middle
+    // unless it is taller than a whole page.
+    async function drawStrip(B, cellLines, stripNo){
+      var guard = 0;
+      while(guard++ < 400){
+        var maxL = 0; cellLines.forEach(function(cl){ maxL = Math.max(maxL, cl.length); });
+        var need = Math.max(maxL * LH, LH) + 2 * PADV, avail = y - BOTLIM;
+        if(need <= avail){
+          var x = MG;
+          cellLines.forEach(function(cl){
+            page.drawRectangle({x:x, y:y - need, width:colW, height:need, color:(stripNo % 2) ? ZEBRA : WHITE, borderColor:BORDER, borderWidth:0.5});
+            drawLines(cl, x + PADX, y - PADV, colW - 2 * PADX, {size:BS, color:PL.rgb(0.11, 0.2, 0.39), lh:LH});
+            x += colW;
+          });
+          y -= need; return;
+        }
+        var atTopOfContPage = contPage && Math.abs(y - pageTopY) < 0.5;
+        var fullAvail = (PH - TOP - 24 - HDR_H) - BOTLIM;
+        if(need <= fullAvail && !atTopOfContPage){ breakPage(B); continue; }
+        var n = Math.floor((avail - 2 * PADV) / LH);
+        if(n < 1){ breakPage(B); continue; }
+        var h2 = n * LH + 2 * PADV, x2 = MG;
+        cellLines.forEach(function(cl){
+          page.drawRectangle({x:x2, y:y - h2, width:colW, height:h2, color:(stripNo % 2) ? ZEBRA : WHITE, borderColor:BORDER, borderWidth:0.5});
+          drawLines(cl.slice(0, n), x2 + PADX, y - PADV, colW - 2 * PADX, {size:BS, color:PL.rgb(0.11, 0.2, 0.39), lh:LH});
+          x2 += colW;
+        });
+        cellLines = cellLines.map(function(cl){ return cl.slice(n); });
+        breakPage(B);
+      }
+    }
+    async function signOff(){
+      var stL = stampLines(stampLeft), stR = stampLines(stampRight), mxs = Math.max(stL.length, stR.length);
+      var signH = 10 + 26 + mxs * 10.8 + 4;
+      if(y - signH < BOT - 2){ newPage(); contHeader(X.benches[X.benches.length - 1]); }
+      y -= 10;
+      async function signCol(label, lines, rightAlign){
+        var lineW = 190, x0 = rightAlign ? PW - MG - lineW : MG;
+        txt(label, {x:x0, y:y - 8, size:7.6, font:fB, color:GREYTX});
+        hline(x0, x0 + lineW, y - 22, 0.8, INK);
+        var yy = y - 25;
+        for(var k = 0; k < lines.length; k++){
+          var bold = k === 0, ls = await layout(lines[k], 8.8, bold, bold ? '#111111' : '#555555', 330);
+          ls.forEach(function(ln){
+            if(ln.emb){ page.drawImage(ln.emb, {x:rightAlign ? PW - MG - ln.w : MG, y:yy - ln.h + 2, width:ln.w, height:ln.h}); }
+            else { page.drawText(ln.s, {x:rightAlign ? PW - MG - ln.w : MG, y:yy - 8.8, size:8.8, font:bold ? fB : fR, color:bold ? INK : GREYTX}); }
+            yy -= 10.8;
+          });
+        }
+      }
+      await signCol('PREPARED BY', stL, false); await signCol('APPROVED BY', stR, true);
+    }
+
+    for(var bi = 0; bi < X.benches.length; bi++){
+      var B = X.benches[bi];
+      newPage();
+      await letterhead();
+      await infoBox(B);
+      tableHeader(B); contPage = false; pageTopY = y;
+      // prepare every day's cases, then walk them band by band
+      var perCol = [], nStrips = 1;
+      for(var ci = 0; ci < B.cols.length; ci++){
+        var cs = B.cols[ci].cases, arr = [];
+        if(!cs.length){ arr.push(await layout('—', BS, false, '#1c3363', colW - 2 * PADX)); }
+        for(var k = 0; k < cs.length; k++){ arr.push(await layout(cs[k], BS, false, '#1c3363', colW - 2 * PADX)); }
+        perCol.push(arr); nStrips = Math.max(nStrips, arr.length);
+      }
+      for(var sn = 0; sn < nStrips; sn++){
+        await drawStrip(B, perCol.map(function(arr){ return arr[sn] || []; }), sn);
+      }
+      if(bi === X.benches.length - 1){ await signOff(); }
+    }
+
+    var tot = pages.length;
+    pages.forEach(function(pg, i){
+      pg.drawLine({start:{x:MG, y:30}, end:{x:PW - MG, y:30}, thickness:0.6, color:BORDER});
+      pg.drawText('Camp Office Prosecutor General Punjab  |  Supreme Court of Pakistan, Islamabad', {x:MG, y:19, size:7, font:fR, color:GREYTX});
+      var mid = 'Generated ' + X.genDate, mw = fR.widthOfTextAtSize(mid, 7);
+      pg.drawText(mid, {x:(PW - mw) / 2, y:19, size:7, font:fR, color:GREYTX});
+      var pn = 'Page ' + (i + 1) + ' of ' + tot, pw0 = fB.widthOfTextAtSize(pn, 7.4);
+      pg.drawText(pn, {x:PW - MG - pw0, y:19, size:7.4, font:fB, color:NAVY});
+    });
+    doc.setTitle(pdfSafe(X.title));
+    doc.setCreator('Camp Office, Prosecutor General Punjab');
+    doc.setAuthor((stampLeft.name && stampLeft.name.trim()) ? pdfSafe(stampLeft.name.trim()) : 'Camp Office, Prosecutor General Punjab');
+    return await doc.save();
+  }
+
+  /* ---------------- Word (.docx) ---------------- */
+  async function buildRosterDocx(){
+    var D = window.docx, X = rosterExportModel(), FONT = 'Arial';
+    var TOTAL_W = 15700, nCols = X.days.length, COL_W = Math.floor(TOTAL_W / nCols);
+    var AL = D.AlignmentType, NONE = {style:D.BorderStyle.NONE, size:0, color:'FFFFFF'};
+    var noBorders = {top:NONE, bottom:NONE, left:NONE, right:NONE, insideHorizontal:NONE, insideVertical:NONE};
+    function run(tx, o){ o = o || {}; var rtl = !!o.rtl || AR_RE.test(String(tx)); return new D.TextRun({text:String(tx == null ? '' : tx), font:FONT, size:o.size || 18, bold:!!o.bold, color:o.color, rightToLeft:rtl}); }
+    function para(parts, o){ o = o || {}; return new D.Paragraph({children:parts, alignment:o.align, spacing:{before:o.before || 0, after:o.after || 0}, bidirectional:!!o.rtl}); }
+    function textParas(text, o){
+      o = o || {};
+      var lines = String(text).split(/\r?\n/).filter(function(l){ return l.trim(); });
+      if(!lines.length) lines = [''];
+      return lines.map(function(l){ var rtl = AR_RE.test(l); return para([run(l, {size:o.size, bold:o.bold, color:o.color, rtl:rtl})], {align:o.align, rtl:rtl}); });
+    }
+    function cellOf(children, w, o){
+      o = o || {};
+      return new D.TableCell({
+        children:children, width:{size:w, type:D.WidthType.DXA}, verticalAlign:o.valign || D.VerticalAlign.TOP,
+        shading:o.fill ? {type:D.ShadingType.CLEAR, color:'auto', fill:o.fill} : undefined,
+        margins:{top:60, bottom:60, left:80, right:80}, columnSpan:o.span
+      });
+    }
+    var logo = punjabLogoBytes();
+    function letterheadBlock(first){
+      var kids = [];
+      if(!first){ kids.push(new D.Paragraph({pageBreakBefore:true, spacing:{before:0, after:0}, children:[new D.TextRun({text:'', size:2})]})); }
+      var mid = X.headLines.map(function(line, i){
+        return para([run(line, {size:i === 0 ? 27 : 19, bold:i === 0, color:i === 0 ? '1B3F63' : '555555', rtl:isUrdu})], {align:AL.CENTER, after:i === 0 ? 20 : 0, rtl:isUrdu});
+      });
+      kids.push(new D.Table({
+        width:{size:TOTAL_W, type:D.WidthType.DXA}, columnWidths:[1500, TOTAL_W - 3000, 1500], layout:D.TableLayoutType.FIXED, borders:noBorders,
+        rows:[new D.TableRow({children:[
+          cellOf([para([new D.ImageRun({type:'png', data:logo, transformation:{width:68, height:54}})])], 1500, {valign:D.VerticalAlign.CENTER}),
+          cellOf(mid, TOTAL_W - 3000, {valign:D.VerticalAlign.CENTER}),
+          cellOf([para([run('')])], 1500)
+        ]})]
+      }));
+      kids.push(new D.Paragraph({spacing:{before:40, after:0, line:20}, border:{bottom:{style:D.BorderStyle.SINGLE, size:18, color:'B8860B', space:1}}, children:[new D.TextRun({text:'', size:2})]}));
+      kids.push(new D.Paragraph({spacing:{before:0, after:100, line:20}, border:{bottom:{style:D.BorderStyle.SINGLE, size:6, color:'1B3F63', space:1}}, children:[new D.TextRun({text:'', size:2})]}));
+      kids.push(para([run('WEEKLY COURT ROSTER', {size:26, bold:true, color:'1B3F63'})], {align:AL.CENTER, before:60, after:40}));
+      kids.push(para([run(X.weekText, {size:20, color:'555555'})], {align:AL.CENTER, after:100}));
+      return kids;
+    }
+    function infoBlock(B){
+      var kids = [];
+      var w1 = 4600, w2 = 4400, w3 = TOTAL_W - w1 - w2;
+      function lab(t){ return para([run(t, {size:14, bold:true, color:'5A6470'})]); }
+      kids.push(new D.Table({
+        width:{size:TOTAL_W, type:D.WidthType.DXA}, columnWidths:[w1, w2, w3], layout:D.TableLayoutType.FIXED,
+        borders:{top:{style:D.BorderStyle.SINGLE, size:4, color:'BFCAD9'}, bottom:{style:D.BorderStyle.SINGLE, size:4, color:'BFCAD9'}, left:{style:D.BorderStyle.SINGLE, size:24, color:'2A5A84'}, right:{style:D.BorderStyle.SINGLE, size:4, color:'BFCAD9'}, insideHorizontal:NONE, insideVertical:NONE},
+        rows:[new D.TableRow({cantSplit:true, children:[
+          cellOf([lab('BENCH')].concat(textParas(B.name || '—', {size:21, bold:true})), w1, {fill:'F6F8FB'}),
+          cellOf([lab('OFFICER')].concat(textParas(B.officer || '—', {size:21, bold:true})), w2, {fill:'F6F8FB'}),
+          cellOf([lab('JUDGES')].concat(textParas(B.judges || '—', {size:18, color:'333333'})), w3, {fill:'F6F8FB'})
+        ]})]
+      }));
+      B.notes.forEach(function(nt, i){ kids.push(para([run(nt, {size:16, color:'B3261E'})], {before:i === 0 ? 50 : 0})); });
+      kids.push(para([run('')], {after:60}));
+      return kids;
+    }
+    var bd = {style:D.BorderStyle.SINGLE, size:4, color:'BFCAD9'};
+    function tableBlock(B){
+      var head = new D.TableRow({tableHeader:true, cantSplit:true, children:B.cols.map(function(c){
+        return cellOf([para([run(c.head, {size:19, bold:true, color:'FFFFFF'})], {align:AL.CENTER}), para([run(c.date, {size:16, color:'FFFFFF'})], {align:AL.CENTER})], COL_W, {fill:'2A5A84', valign:D.VerticalAlign.CENTER});
+      })});
+      var n = 1; B.cols.forEach(function(c){ n = Math.max(n, c.cases.length); });
+      var rows = [head];
+      for(var k = 0; k < n; k++){
+        (function(k){
+          rows.push(new D.TableRow({cantSplit:true, children:B.cols.map(function(c){
+            var tx = c.cases.length ? (c.cases[k] || '') : (k === 0 ? '—' : '');
+            return cellOf(textParas(tx, {size:17, color:'1C3363'}), COL_W, {fill:(k % 2) ? 'F4F7FB' : undefined});
+          })}));
+        })(k);
+      }
+      return new D.Table({rows:rows, width:{size:TOTAL_W, type:D.WidthType.DXA}, columnWidths:B.cols.map(function(){ return COL_W; }), layout:D.TableLayoutType.FIXED,
+        borders:{top:bd, bottom:bd, left:bd, right:bd, insideHorizontal:bd, insideVertical:bd}});
+    }
+    function signBlock(){
+      function stampCell(label, st, align){
+        var ls = stampLines(st);
+        var kids = [para([run(label, {size:15, bold:true, color:'5A6470'})], {align:align}), para([run('')], {before:420})];
+        kids.push(new D.Paragraph({alignment:align, spacing:{before:0, after:60}, children:[new D.TextRun({text:'', size:2})], border:{top:{style:D.BorderStyle.SINGLE, size:6, color:'222222', space:1}}, indent:{left:align === AL.RIGHT ? 3900 : 0, right:align === AL.RIGHT ? 0 : 3900}}));
+        ls.forEach(function(line, i){ var rtl = AR_RE.test(line); kids.push(para([run(line, {size:18, bold:i === 0, color:i === 0 ? '111111' : '555555', rtl:rtl})], {align:align, rtl:rtl})); });
+        return cellOf(kids, TOTAL_W / 2);
+      }
+      return [para([run('')], {before:240}), new D.Table({
+        width:{size:TOTAL_W, type:D.WidthType.DXA}, columnWidths:[TOTAL_W / 2, TOTAL_W / 2], layout:D.TableLayoutType.FIXED, borders:noBorders,
+        rows:[new D.TableRow({cantSplit:true, children:[stampCell('PREPARED BY', stampLeft, AL.LEFT), stampCell('APPROVED BY', stampRight, AL.RIGHT)]})]
+      })];
+    }
+    var kids = [];
+    X.benches.forEach(function(B, bi){
+      kids = kids.concat(letterheadBlock(bi === 0), infoBlock(B), [tableBlock(B)]);
+    });
+    kids = kids.concat(signBlock());
+    var footer = new D.Footer({children:[new D.Paragraph({alignment:AL.CENTER, children:[
+      new D.TextRun({text:'Camp Office Prosecutor General Punjab  |  Supreme Court of Pakistan, Islamabad  |  Generated ' + X.genDate + '  |  Page ', font:FONT, size:14, color:'666666'}),
+      new D.TextRun({children:[D.PageNumber.CURRENT], font:FONT, size:14, bold:true, color:'1B3F63'}),
+      new D.TextRun({text:' of ', font:FONT, size:14, color:'666666'}),
+      new D.TextRun({children:[D.PageNumber.TOTAL_PAGES], font:FONT, size:14, bold:true, color:'1B3F63'})
+    ]})]});
+    var doc = new D.Document({
+      creator:'Camp Office, Prosecutor General Punjab', title:X.title,
+      sections:[{
+        properties:{page:{size:{width:11906, height:16838, orientation:D.PageOrientation.LANDSCAPE}, margin:{top:567, bottom:680, left:567, right:567, footer:300}}},
+        footers:{default:footer},
+        children:kids
+      }]
+    });
+    return await D.Packer.toBlob(doc);
+  }
+
+  /* ---------------- Excel (.xlsx) — one sheet per bench ---------------- */
+  async function buildRosterXlsx(){
+    var X = rosterExportModel(), nCols = X.days.length, lastCol = nCols - 1, L = colLetter(lastCol);
+    var colWid = nCols === 1 ? 110 : 31;
+    var cpl = Math.max(10, Math.floor(colWid * 1.2));        // rough characters per line inside a day column
+    function t(ref, text, st){ return '<c r="'+ref+'" s="'+st+'" t="inlineStr"><is><t xml:space="preserve">'+xmlEsc(text)+'</t></is></c>'; }
+    function blank(ref, st){ return '<c r="'+ref+'" s="'+st+'"/>'; }
+    // Rough number of wrapped lines (word by word) — used to give each row enough height, because Excel does not
+    // grow a row by itself when the file is opened.
+    function lineCount(text, perLine){
+      var n = 0;
+      String(text).split(/\r?\n/).forEach(function(p){
+        var cur = 0, ln = 1;
+        p.split(/\s+/).filter(Boolean).forEach(function(w){
+          if(cur && cur + 1 + w.length > perLine){ ln++; cur = w.length; } else { cur += (cur ? 1 : 0) + w.length; }
+          while(cur > perLine){ ln++; cur -= perLine; }
+        });
+        n += ln;
+      });
+      return Math.max(1, n);
+    }
+    var usedNames = {};
+    function sheetName(name, idx){
+      var nm = String(name || '').replace(/[\[\]:*?\/\\]/g, '-').trim().slice(0, 28) || ('Bench ' + (idx + 1));
+      var base = nm, c = 2;
+      while(usedNames[nm.toLowerCase()]){ nm = base.slice(0, 26) + ' (' + c + ')'; c++; }
+      usedNames[nm.toLowerCase()] = 1; return nm;
+    }
+    var sheets = [];
+    X.benches.forEach(function(B, bi){
+      var rows = '', merges = [], rowNo = 0;
+      function addRow(cells, ht){ rowNo++; rows += '<row r="'+rowNo+'"'+(ht ? ' ht="'+ht+'" customHeight="1"' : '')+'>'+cells(rowNo)+'</row>'; return rowNo; }
+      function mergedRow(text, st, ht){ return addRow(function(rn){ if(lastCol > 0) merges.push('A'+rn+':'+L+rn); return t('A'+rn, text, st); }, ht); }
+      var heads = X.headLines.slice(); while(heads.length < 3) heads.push('');
+      heads.forEach(function(line, i){ mergedRow(line, i === 0 ? 1 : 2, i === 0 ? 24 : 16); });
+      mergedRow('WEEKLY COURT ROSTER', 3, 22);
+      mergedRow(X.weekText, 4, 18);
+      addRow(function(){ return ''; }, 6);
+      mergedRow('BENCH:  ' + (B.name || '—'), 5, 20);
+      mergedRow('OFFICER:  ' + (B.officer || '—'), 5, 20);
+      if(B.judges){ mergedRow('JUDGES:  ' + B.judges, 6, Math.min(120, 4 + 12.5 * lineCount('JUDGES:  ' + B.judges, Math.floor(colWid * nCols * 1.05)))); }
+      B.notes.forEach(function(nt){ mergedRow(nt, 7, Math.min(120, 4 + 12 * lineCount(nt, Math.floor(colWid * nCols * 1.1)))); });
+      addRow(function(){ return ''; }, 8);
+      var headRow = addRow(function(rn){
+        return B.cols.map(function(c, i){ return t(colLetter(i)+rn, c.head + '\n' + c.date, 8); }).join('');
+      }, 32);
+      var n = 1; B.cols.forEach(function(c){ n = Math.max(n, c.cases.length); });
+      for(var k = 0; k < n; k++){
+        (function(k){
+          var mx = 1;
+          B.cols.forEach(function(c){ var tx = c.cases[k]; if(tx) mx = Math.max(mx, lineCount(tx, cpl)); });
+          addRow(function(rn){
+            return B.cols.map(function(c, i){
+              var tx = c.cases.length ? (c.cases[k] || '') : (k === 0 ? '—' : '');
+              return tx ? t(colLetter(i)+rn, tx, (k % 2) ? 10 : 9) : blank(colLetter(i)+rn, (k % 2) ? 10 : 9);
+            }).join('');
+          }, Math.min(400, 5 + 12 * mx));
+        })(k);
+      }
+      if(bi === X.benches.length - 1){
+        addRow(function(){ return ''; }, 14);
+        var sl = stampLines(stampLeft), sr2 = stampLines(stampRight), mxl = Math.max(sl.length, sr2.length);
+        addRow(function(rn){ return t('A'+rn, 'PREPARED BY', 11) + (lastCol > 0 ? t(L+rn, 'APPROVED BY', 16) : ''); }, 14);
+        addRow(function(rn){ return blank('A'+rn, 17) + (lastCol > 0 ? blank(L+rn, 18) : ''); }, 30);
+        for(var i = 0; i < mxl; i++){
+          (function(i){ addRow(function(rn){
+            return (sl[i] ? t('A'+rn, sl[i], i === 0 ? 12 : 14) : '') + ((lastCol > 0 && sr2[i]) ? t(L+rn, sr2[i], i === 0 ? 13 : 15) : '');
+          }, 14); })(i);
+        }
+      }
+      sheets.push({name:sheetName(B.name, bi), rows:rows, merges:merges, headRow:headRow});
+    });
+
+    var styles = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">' +
+      '<fonts count="11">' +
+      '<font><sz val="10"/><name val="Arial"/></font>' +                                                      // 0
+      '<font><b/><sz val="14"/><color rgb="FF1B3F63"/><name val="Arial"/></font>' +                           // 1 heading
+      '<font><sz val="9.5"/><color rgb="FF555555"/><name val="Arial"/></font>' +                              // 2 sub-heading grey
+      '<font><b/><sz val="13"/><color rgb="FF1B3F63"/><name val="Arial"/></font>' +                           // 3 title
+      '<font><b/><sz val="10.5"/><name val="Arial"/></font>' +                                                // 4 bold
+      '<font><b/><sz val="10"/><color rgb="FFFFFFFF"/><name val="Arial"/></font>' +                           // 5 head white
+      '<font><sz val="9"/><color rgb="FF1C3363"/><name val="Arial"/></font>' +                                // 6 case text
+      '<font><sz val="9"/><color rgb="FFB3261E"/><name val="Arial"/></font>' +                                // 7 red note
+      '<font><b/><sz val="7.5"/><color rgb="FF5A6470"/><name val="Arial"/></font>' +                          // 8 label
+      '<font><b/><sz val="9"/><color rgb="FF111111"/><name val="Arial"/></font>' +                            // 9 stamp name
+      '<font><sz val="9"/><color rgb="FF555555"/><name val="Arial"/></font>' +                                // 10 stamp lines
+      '</fonts>' +
+      '<fills count="5"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill>' +
+      '<fill><patternFill patternType="solid"><fgColor rgb="FF2A5A84"/><bgColor indexed="64"/></patternFill></fill>' +
+      '<fill><patternFill patternType="solid"><fgColor rgb="FFF4F7FB"/><bgColor indexed="64"/></patternFill></fill>' +
+      '<fill><patternFill patternType="solid"><fgColor rgb="FFF6F8FB"/><bgColor indexed="64"/></patternFill></fill></fills>' +
+      '<borders count="3"><border><left/><right/><top/><bottom/><diagonal/></border>' +
+      '<border><left style="thin"><color rgb="FFBFCAD9"/></left><right style="thin"><color rgb="FFBFCAD9"/></right><top style="thin"><color rgb="FFBFCAD9"/></top><bottom style="thin"><color rgb="FFBFCAD9"/></bottom><diagonal/></border>' +
+      '<border><left/><right/><top style="thin"><color rgb="FF222222"/></top><bottom/><diagonal/></border></borders>' +
+      '<cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>' +
+      '<cellXfs count="19">' +
+      '<xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/>' +                                                                                                                         // 0
+      '<xf numFmtId="0" fontId="1" fillId="0" borderId="0" xfId="0" applyFont="1"><alignment horizontal="center" vertical="center"/></xf>' +                                                   // 1 heading
+      '<xf numFmtId="0" fontId="2" fillId="0" borderId="0" xfId="0" applyFont="1"><alignment horizontal="center" vertical="center"/></xf>' +                                                   // 2 sub heading
+      '<xf numFmtId="0" fontId="3" fillId="0" borderId="0" xfId="0" applyFont="1"><alignment horizontal="center" vertical="center"/></xf>' +                                                   // 3 title
+      '<xf numFmtId="0" fontId="4" fillId="0" borderId="0" xfId="0" applyFont="1"><alignment horizontal="center" vertical="center"/></xf>' +                                                   // 4 week
+      '<xf numFmtId="0" fontId="4" fillId="4" borderId="0" xfId="0" applyFont="1" applyFill="1"><alignment horizontal="left" vertical="center" wrapText="1" indent="1"/></xf>' +             // 5 info bold
+      '<xf numFmtId="0" fontId="0" fillId="4" borderId="0" xfId="0" applyFill="1"><alignment horizontal="left" vertical="top" wrapText="1" indent="1"/></xf>' +                              // 6 info judges
+      '<xf numFmtId="0" fontId="7" fillId="4" borderId="0" xfId="0" applyFont="1" applyFill="1"><alignment horizontal="left" vertical="top" wrapText="1" indent="1"/></xf>' +               // 7 note
+      '<xf numFmtId="0" fontId="5" fillId="2" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1"><alignment horizontal="center" vertical="center" wrapText="1"/></xf>' +     // 8 table head
+      '<xf numFmtId="0" fontId="6" fillId="0" borderId="1" xfId="0" applyFont="1" applyBorder="1"><alignment horizontal="left" vertical="top" wrapText="1"/></xf>' +                        // 9 cell
+      '<xf numFmtId="0" fontId="6" fillId="3" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1"><alignment horizontal="left" vertical="top" wrapText="1"/></xf>' +         // 10 cell zebra
+      '<xf numFmtId="0" fontId="8" fillId="0" borderId="0" xfId="0" applyFont="1"><alignment horizontal="left" vertical="center"/></xf>' +                                                   // 11 label left
+      '<xf numFmtId="0" fontId="9" fillId="0" borderId="0" xfId="0" applyFont="1"><alignment horizontal="left" vertical="center"/></xf>' +                                                   // 12 stamp name L
+      '<xf numFmtId="0" fontId="9" fillId="0" borderId="0" xfId="0" applyFont="1"><alignment horizontal="right" vertical="center"/></xf>' +                                                  // 13 stamp name R
+      '<xf numFmtId="0" fontId="10" fillId="0" borderId="0" xfId="0" applyFont="1"><alignment horizontal="left" vertical="center"/></xf>' +                                                 // 14 stamp line L
+      '<xf numFmtId="0" fontId="10" fillId="0" borderId="0" xfId="0" applyFont="1"><alignment horizontal="right" vertical="center"/></xf>' +                                                // 15 stamp line R
+      '<xf numFmtId="0" fontId="8" fillId="0" borderId="0" xfId="0" applyFont="1"><alignment horizontal="right" vertical="center"/></xf>' +                                                  // 16 label right
+      '<xf numFmtId="0" fontId="0" fillId="0" borderId="2" xfId="0" applyBorder="1"/>' +                                                                                                       // 17 sign line L
+      '<xf numFmtId="0" fontId="0" fillId="0" borderId="2" xfId="0" applyBorder="1"/>' +                                                                                                       // 18 sign line R
+      '</cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>';
+
+    var NS_MAIN = 'http://schemas.openxmlformats.org/spreadsheetml/2006/main', NS_R = 'http://schemas.openxmlformats.org/officeDocument/2006/relationships';
+    var footerTxt = '&amp;L&amp;"Arial,Regular"&amp;7Camp Office Prosecutor General Punjab  |  Supreme Court of Pakistan, Islamabad&amp;C&amp;"Arial,Regular"&amp;7Generated ' + xmlEsc(X.genDate) + '&amp;R&amp;"Arial,Bold"&amp;7Page &amp;P of &amp;N';
+    var logoH = 56, logoW = Math.round(logoH * PUNJAB_LOGO_RATIO);
+    function drawingXml(){
+      var cx = logoW * 9525, cy = logoH * 9525;
+      return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><xdr:wsDr xmlns:xdr="http://schemas.openxmlformats.org/drawingml/2006/spreadsheetDrawing" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:r="'+NS_R+'">' +
+        '<xdr:oneCellAnchor><xdr:from><xdr:col>0</xdr:col><xdr:colOff>76200</xdr:colOff><xdr:row>0</xdr:row><xdr:rowOff>38100</xdr:rowOff></xdr:from><xdr:ext cx="'+cx+'" cy="'+cy+'"/>' +
+        '<xdr:pic><xdr:nvPicPr><xdr:cNvPr id="2" name="Government of Punjab" descr="Government of Punjab"/><xdr:cNvPicPr><a:picLocks noChangeAspect="1"/></xdr:cNvPicPr></xdr:nvPicPr>' +
+        '<xdr:blipFill><a:blip r:embed="rId1"/><a:stretch><a:fillRect/></a:stretch></xdr:blipFill>' +
+        '<xdr:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="'+cx+'" cy="'+cy+'"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></xdr:spPr></xdr:pic><xdr:clientData/></xdr:oneCellAnchor></xdr:wsDr>';
+    }
+    var zip = new JSZip();
+    zip.file('[Content_Types].xml', '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Default Extension="png" ContentType="image/png"/>' +
+      '<Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>' +
+      sheets.map(function(s, i){ return '<Override PartName="/xl/worksheets/sheet'+(i+1)+'.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/><Override PartName="/xl/drawings/drawing'+(i+1)+'.xml" ContentType="application/vnd.openxmlformats-officedocument.drawing+xml"/>'; }).join('') +
+      '<Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/></Types>');
+    zip.file('_rels/.rels', '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>');
+    zip.file('xl/workbook.xml', '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><workbook xmlns="'+NS_MAIN+'" xmlns:r="'+NS_R+'"><bookViews><workbookView/></bookViews><sheets>' +
+      sheets.map(function(s, i){ return '<sheet name="'+xmlEsc(s.name)+'" sheetId="'+(i+1)+'" r:id="rId'+(i+1)+'"/>'; }).join('') + '</sheets><definedNames>' +
+      sheets.map(function(s, i){ return '<definedName name="_xlnm.Print_Titles" localSheetId="'+i+'">\''+xmlEsc(s.name.replace(/'/g, "''"))+'\'!$'+s.headRow+':$'+s.headRow+'</definedName>'; }).join('') + '</definedNames></workbook>');
+    zip.file('xl/_rels/workbook.xml.rels', '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' +
+      sheets.map(function(s, i){ return '<Relationship Id="rId'+(i+1)+'" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet'+(i+1)+'.xml"/>'; }).join('') +
+      '<Relationship Id="rId'+(sheets.length+1)+'" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>');
+    zip.file('xl/styles.xml', styles);
+    zip.file('xl/media/logo.png', punjabLogoBytes());
+    sheets.forEach(function(s, i){
+      var widths = []; for(var c = 0; c < nCols; c++) widths.push('<col min="'+(c+1)+'" max="'+(c+1)+'" width="'+colWid+'" customWidth="1"/>');
+      var xml = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="'+NS_MAIN+'" xmlns:r="'+NS_R+'">' +
+        '<sheetPr><pageSetUpPr fitToPage="1"/></sheetPr><sheetViews><sheetView workbookViewId="0" showGridLines="0"'+(i === 0 ? ' tabSelected="1"' : '')+'/></sheetViews>' +
+        '<sheetFormatPr defaultRowHeight="15"/><cols>' + widths.join('') + '</cols>' +
+        '<sheetData>' + s.rows + '</sheetData>' + (s.merges.length ? '<mergeCells count="'+s.merges.length+'">' + s.merges.map(function(m){ return '<mergeCell ref="'+m+'"/>'; }).join('') + '</mergeCells>' : '') +
+        '<printOptions horizontalCentered="1"/><pageMargins left="0.4" right="0.4" top="0.5" bottom="0.6" header="0.25" footer="0.3"/>' +
+        '<pageSetup paperSize="9" orientation="landscape" fitToWidth="1" fitToHeight="0"/>' +
+        '<headerFooter><oddFooter>'+footerTxt+'</oddFooter></headerFooter><drawing r:id="rId1"/></worksheet>';
+      zip.file('xl/worksheets/sheet'+(i+1)+'.xml', xml);
+      zip.file('xl/worksheets/_rels/sheet'+(i+1)+'.xml.rels', '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/drawing" Target="../drawings/drawing'+(i+1)+'.xml"/></Relationships>');
+      zip.file('xl/drawings/drawing'+(i+1)+'.xml', drawingXml());
+      zip.file('xl/drawings/_rels/drawing'+(i+1)+'.xml.rels', '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="../media/logo.png"/></Relationships>');
+    });
+    return await zip.generateAsync({type:'blob', mimeType:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+  }
+
+  function rosterExportGuard(){
+    var X = rosterExportModel();
+    if(!X){ alert(isUrdu ? 'پہلے روسٹر بنائیں اور بینچ منتخب کریں' : 'Please build a roster and select a bench first'); return null; }
+    return X;
+  }
+  async function downloadRosterPdf(){
+    var X = rosterExportGuard(); if(!X) return;
+    try{
+      await rLoadLib('pdflib');
+      var bytes = await buildRosterPdf();
+      rosterDownloadBlob(new Blob([bytes], {type:'application/pdf'}), X.fileBase + '.pdf');
+    }catch(err){
+      console.error('vector PDF failed, using the picture-based PDF instead:', err);
+      downloadRosterPdfImage();
+    }
+  }
+  async function downloadRosterDocx(){
+    var X = rosterExportGuard(); if(!X) return;
+    try{ await rLoadLib('docx'); rosterDownloadBlob(await buildRosterDocx(), X.fileBase + '.docx'); }
+    catch(err){ console.error(err); alert((isUrdu ? 'Word فائل نہیں بن سکی: ' : 'Could not build the Word file: ') + (err && err.message ? err.message : err)); }
+  }
+  async function downloadRosterXlsx(){
+    var X = rosterExportGuard(); if(!X) return;
+    try{ await rLoadLib('jszip'); rosterDownloadBlob(await buildRosterXlsx(), X.fileBase + '.xlsx'); }
+    catch(err){ console.error(err); alert((isUrdu ? 'Excel فائل نہیں بن سکی: ' : 'Could not build the Excel file: ') + (err && err.message ? err.message : err)); }
+  }
+
 
   // Page heading (top bar) — editable in place (✎ edit, ↺ reset to default), separately for each
   // language, so a correction to the office name doesn't need touching the file.
