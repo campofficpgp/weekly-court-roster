@@ -103,6 +103,15 @@ html,body{overflow-x:hidden;}
      needed because saved rosters now live in the shared online database, not just this page. */
   .login-overlay{position:fixed; inset:0; z-index:200; display:flex; align-items:center; justify-content:center; background:linear-gradient(135deg,var(--navy2),var(--navy)); padding:20px;}
   .login-overlay.hidden{display:none;}
+  /* per-user ticks: a button the user has no tick for is dimmed (the server rules are the real lock) */
+  .btn.perm-off{opacity:.42; cursor:not-allowed; filter:grayscale(.4);}
+  .no-access{position:fixed; inset:0; z-index:190; display:none; align-items:center; justify-content:center; background:rgba(15,25,45,.96); padding:16px;}
+  .no-access.show{display:flex;}
+  .no-access .na-card{max-width:460px; width:100%; background:#17294a; border:1px solid #3a4f7d; border-radius:14px; padding:26px 24px; text-align:center; color:#fff;}
+  .no-access h2{margin:0 0 8px; font-size:20px; color:#ffd77a;}
+  .no-access .na-ur{direction:rtl; font-size:15px; line-height:2;}
+  .no-access .na-en{font-size:12.5px; opacity:.88;}
+  .no-access a.na-btn{display:inline-block; margin-top:14px; border:1px solid #d4a13d; background:#d4a13d; color:#17294a; border-radius:8px; padding:9px 16px; font-weight:700; font-size:14px; text-decoration:none;}
   /* While Firebase is still checking a possibly-already-signed-in session (this always takes a brief
      moment, even for someone already signed in -- e.g. right after a page reload or browser Back/
      Forward), show this instead of the Email/Password form so it never flashes on screen for someone
@@ -446,6 +455,14 @@ body[dir="rtl"] .main-col{ direction:rtl; }
 </head>
 <body>
 
+  <div class="no-access" id="rosterNoAccess" role="alertdialog" aria-modal="true">
+    <div class="na-card">
+      <h2>رسائی کی اجازت نہیں / No access</h2>
+      <div class="na-ur">آپ کو ہفتہ وار روسٹر کھولنے کی اجازت نہیں دی گئی۔ ضرورت ہو تو سپر ایڈمن سے رابطہ کریں۔</div>
+      <div class="na-en">You have not been given permission to open the Weekly Court Roster. Ask the Super Admin if you need it.</div>
+      <a class="na-btn" href="https://cmpofficepgp.org/camp-office-suite/">پورٹل پر جائیں / Go to portal</a>
+    </div>
+  </div>
   <div class="login-overlay checking" id="loginOverlay">
     <div class="login-checking" id="loginChecking" data-en="Checking sign-in…" data-ur="سائن اِن چیک ہو رہا ہے…">Checking sign-in…</div>
     <div class="login-box">
@@ -608,10 +625,10 @@ body[dir="rtl"] .main-col{ direction:rtl; }
         <table class="roster-table" id="rosterTable"></table>
       </div>
       <div style="margin-top:14px; display:flex; gap:10px; flex-wrap:wrap;">
-        <div class="btn gold" onclick="saveCurrentRoster()" data-en="💾 Save This Week's Roster" data-ur="💾 اس ہفتے کا روسٹر محفوظ کریں">💾 Save This Week's Roster</div>
+        <div class="btn gold" data-perm="e" onclick="saveCurrentRoster()" data-en="💾 Save This Week's Roster" data-ur="💾 اس ہفتے کا روسٹر محفوظ کریں">💾 Save This Week's Roster</div>
         <select id="rosterDaySelect" style="padding:9px 12px;border-radius:8px;border:1px solid var(--border);font-size:13px;font-family:inherit;background:#fff;" title="Only include one day of the week in the print/PDF, instead of the whole week / صرف ہفتے کا ایک دن پرنٹ/PDF میں شامل کریں"></select>
-        <div class="btn ghost" onclick="printCurrentRoster('active')" data-en="🖨️ Print / Preview (This Bench Only)" data-ur="🖨️ پرنٹ / پیش منظر (صرف یہ بینچ)">🖨️ Print / Preview (This Bench Only)</div>
-        <div class="btn ghost" onclick="printCurrentRoster('all')" data-en="🖨️ Print / Preview (All Benches — each on its own page)" data-ur="🖨️ پرنٹ / پیش منظر (تمام بینچز — ہر ایک الگ صفحے پر)">🖨️ Print / Preview (All Benches — each on its own page)</div>
+        <div class="btn ghost" data-perm="x" onclick="printCurrentRoster('active')" data-en="🖨️ Print / Preview (This Bench Only)" data-ur="🖨️ پرنٹ / پیش منظر (صرف یہ بینچ)">🖨️ Print / Preview (This Bench Only)</div>
+        <div class="btn ghost" data-perm="x" onclick="printCurrentRoster('all')" data-en="🖨️ Print / Preview (All Benches — each on its own page)" data-ur="🖨️ پرنٹ / پیش منظر (تمام بینچز — ہر ایک الگ صفحے پر)">🖨️ Print / Preview (All Benches — each on its own page)</div>
       </div>
       <div class="disclaimer" data-en="This saves to the shared online database (same as the other Camp Office systems) — every signed-in device sees the same saved rosters." data-ur="یہ مشترکہ آن لائن ڈیٹا بیس میں محفوظ ہوتا ہے (دفتر کے باقی سسٹمز کی طرح) — ہر سائن اِن شدہ ڈیوائس پر وہی محفوظ شدہ روسٹرز نظر آتے ہیں۔">This saves to the shared online database (same as the other Camp Office systems) — every signed-in device sees the same saved rosters.</div>
     </div>
@@ -654,16 +671,17 @@ body[dir="rtl"] .main-col{ direction:rtl; }
       <div style="padding:0 20px 20px;">
         <div id="rosterPrintArea" class="print-sheet"></div>
         <div class="actions" style="padding:16px 0 0; display:flex; gap:10px; flex-wrap:wrap;">
-          <div class="btn primary" onclick="window.print()" data-en="🖨️ Print" data-ur="🖨️ پرنٹ کریں">🖨️ Print</div>
-          <div class="btn ghost" onclick="downloadRosterPdf()" title="Downloads a ready PDF file directly" data-en="📄 Download PDF" data-ur="📄 PDF ڈاؤن لوڈ کریں">📄 Download PDF</div>
-          <div class="btn ghost" onclick="downloadRosterDocx()" title="Downloads a Word file (each bench on its own page)" data-en="📝 Download Word" data-ur="📝 Word ڈاؤن لوڈ کریں">📝 Download Word</div>
-          <div class="btn ghost" onclick="downloadRosterXlsx()" title="Downloads an Excel file (each bench on its own sheet)" data-en="📊 Download Excel" data-ur="📊 Excel ڈاؤن لوڈ کریں">📊 Download Excel</div>
+          <div class="btn primary" data-perm="x" onclick="rosterPrintNow()" data-en="🖨️ Print" data-ur="🖨️ پرنٹ کریں">🖨️ Print</div>
+          <div class="btn ghost" data-perm="x" onclick="downloadRosterPdf()" title="Downloads a ready PDF file directly" data-en="📄 Download PDF" data-ur="📄 PDF ڈاؤن لوڈ کریں">📄 Download PDF</div>
+          <div class="btn ghost" data-perm="x" onclick="downloadRosterDocx()" title="Downloads a Word file (each bench on its own page)" data-en="📝 Download Word" data-ur="📝 Word ڈاؤن لوڈ کریں">📝 Download Word</div>
+          <div class="btn ghost" data-perm="x" onclick="downloadRosterXlsx()" title="Downloads an Excel file (each bench on its own sheet)" data-en="📊 Download Excel" data-ur="📊 Excel ڈاؤن لوڈ کریں">📊 Download Excel</div>
           <div class="btn ghost" onclick="closeRosterPrint()" data-en="Close" data-ur="بند کریں">Close</div>
         </div>
       </div>
     </div>
   </div>
 
+<script src="https://cmpofficepgp.org/camp-office-suite/camp-perm.js"></script>
 <script>
 
   /* ===== Shared Camp Office login + online database (same Firebase project, same account,
@@ -686,6 +704,46 @@ body[dir="rtl"] .main-col{ direction:rtl; }
   var ROSTER_DOC_REF = db.collection("appData_weeklyroster").doc("shared");
   var unsubscribeRosterDoc = null;
   var rosterReadErrorShown = false;
+
+  /* ===== per-user ticks for this page (key "roster"): v = open and see saved rosters, e = save a week,
+     d = delete a saved week, x = print / PDF / Word / Excel.  Super Admin sets them for each user in the portal
+     (Users & Settings).  A user with no ticks of his own keeps what his role had before (Admin: all; others: view
+     and print only).  This only decides what the SCREEN shows; the Firestore rules are the real lock. ===== */
+  var ROSTER_ME = null;              /* users/{uid} data, once read */
+  var ROSTER_PROFILE_FAILED = false; /* profile could not be read: show the screen as before, the rules still decide */
+  var unsubscribeRosterUser = null;
+  function rosterCan(act){
+    if(ROSTER_ME){
+      /* use the shared table only if this copy of camp-perm.js already knows the "roster" page (an older cached copy does not) */
+      if(window.CampPerm && typeof window.CampPerm.can === 'function' && typeof window.CampPerm.pageInfo === 'function' && window.CampPerm.pageInfo('roster')){ return window.CampPerm.can(ROSTER_ME, 'roster', act); }
+      var r = ROSTER_ME.roleV2 || (ROSTER_ME.role === 'admin' ? 'admin' : 'viewer');
+      if(r === 'super_admin' || r === 'admin'){ return true; }
+      return act === 'v' || act === 'x';
+    }
+    if(ROSTER_PROFILE_FAILED){ return true; }
+    return act === 'v' || act === 'x';
+  }
+  function rosterDenied(){
+    alert(isUrdu ? 'آپ کو اس کام کی اجازت نہیں دی گئی۔ ضرورت ہو تو سپر ایڈمن سے رابطہ کریں۔' : 'You have not been given permission for this. Ask the Super Admin if you need it.');
+  }
+  function rosterApplyPerms(){
+    var canV = rosterCan('v');
+    var box = document.getElementById('rosterNoAccess');
+    if(box){ box.classList.toggle('show', !canV); }
+    if(canV){ if(!unsubscribeRosterDoc && auth.currentUser){ startRosterListener(); } }
+    else { stopRosterListener(); }
+    Array.prototype.forEach.call(document.querySelectorAll('[data-perm]'), function(el){
+      var ok = rosterCan(el.getAttribute('data-perm'));
+      el.classList.toggle('perm-off', !ok);
+      if(!ok){ el.setAttribute('aria-disabled', 'true'); el.setAttribute('title', 'اجازت نہیں / Not permitted'); }
+      else { el.removeAttribute('aria-disabled'); if(el.getAttribute('title') === 'اجازت نہیں / Not permitted'){ el.removeAttribute('title'); } }
+    });
+    if(document.getElementById('savedRostersModal') && document.getElementById('savedRostersModal').classList.contains('open')){ openSavedRosters(); }
+  }
+  function rosterPrintNow(){
+    if(!rosterCan('x')){ rosterDenied(); return; }
+    window.print();
+  }
 
   function rosterUid(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,8); }
 
@@ -760,8 +818,11 @@ body[dir="rtl"] .main-col{ direction:rtl; }
         return tx.get(ROSTER_DOC_REF).then(function(snap){
           var serverArr = (snap.exists && Array.isArray(snap.data().rosters)) ? snap.data().rosters : [];
           var cutoff = rosterRetentionCutoff();
+          /* the 6-month clean-up removes old weeks, so only a user who has the Delete tick may trigger it
+             (otherwise a plain "save" would also delete other people's old weeks) */
+          var mayTrim = rosterCan('d');
           var merged = mergeRostersById(serverArr, localSnapshot).filter(function(r){
-            return toDelete.indexOf(r.id) === -1 && (!r.weekStart || r.weekStart >= cutoff);
+            return toDelete.indexOf(r.id) === -1 && (!mayTrim || !r.weekStart || r.weekStart >= cutoff);
           });
           tx.set(ROSTER_DOC_REF, { rosters: merged });
           return merged;
@@ -783,25 +844,48 @@ body[dir="rtl"] .main-col{ direction:rtl; }
       overlay.classList.add('hidden');
       if(badge) badge.textContent = user.email || '';
       rosterReadErrorShown = false;
-      if(unsubscribeRosterDoc) unsubscribeRosterDoc();
-      unsubscribeRosterDoc = ROSTER_DOC_REF.onSnapshot(function(snap){
-        if(suppressNextRosterSnapshot){ suppressNextRosterSnapshot = false; return; }
-        var data = snap.exists ? snap.data() : null;
-        SAVED_ROSTERS = (data && Array.isArray(data.rosters)) ? data.rosters : [];
-        if(document.getElementById('savedRostersModal').classList.contains('open')) openSavedRosters();
-      }, function(err){
-        if(!rosterReadErrorShown){
-          rosterReadErrorShown = true;
-          alert((isUrdu ? 'محفوظ شدہ روسٹرز آن لائن ڈیٹا بیس سے نہیں پڑھے جا سکے: ' : 'Could not read saved rosters from the online database: ') + err.message);
-        }
+      /* read this user's profile (live, so a changed tick applies without reload) and only then open the saved rosters */
+      stopRosterListener();
+      if(unsubscribeRosterUser){ unsubscribeRosterUser(); unsubscribeRosterUser = null; }
+      ROSTER_ME = null; ROSTER_PROFILE_FAILED = false;
+      unsubscribeRosterUser = db.collection('users').doc(user.uid).onSnapshot(function(us){
+        ROSTER_ME = us.exists ? us.data() : null;
+        ROSTER_PROFILE_FAILED = !us.exists;
+        rosterApplyPerms();
+      }, function(){
+        ROSTER_ME = null; ROSTER_PROFILE_FAILED = true;
+        rosterApplyPerms();
       });
     } else {
       overlay.classList.remove('hidden');
       if(badge) badge.textContent = '';
-      if(unsubscribeRosterDoc){ unsubscribeRosterDoc(); unsubscribeRosterDoc = null; }
+      stopRosterListener();
+      if(unsubscribeRosterUser){ unsubscribeRosterUser(); unsubscribeRosterUser = null; }
+      ROSTER_ME = null; ROSTER_PROFILE_FAILED = false;
+      var na = document.getElementById('rosterNoAccess'); if(na){ na.classList.remove('show'); }
       SAVED_ROSTERS = [];
     }
   });
+
+  /* the saved-rosters live listener (only runs for a user who has the View tick) */
+  function startRosterListener(){
+    if(unsubscribeRosterDoc) unsubscribeRosterDoc();
+    unsubscribeRosterDoc = ROSTER_DOC_REF.onSnapshot(function(snap){
+      if(suppressNextRosterSnapshot){ suppressNextRosterSnapshot = false; return; }
+      var data = snap.exists ? snap.data() : null;
+      SAVED_ROSTERS = (data && Array.isArray(data.rosters)) ? data.rosters : [];
+      if(document.getElementById('savedRostersModal').classList.contains('open')) openSavedRosters();
+    }, function(err){
+      if(!rosterReadErrorShown){
+        rosterReadErrorShown = true;
+        alert((isUrdu ? 'محفوظ شدہ روسٹرز آن لائن ڈیٹا بیس سے نہیں پڑھے جا سکے: ' : 'Could not read saved rosters from the online database: ') + err.message);
+      }
+    });
+  }
+  function stopRosterListener(){
+    if(unsubscribeRosterDoc){ unsubscribeRosterDoc(); unsubscribeRosterDoc = null; }
+    SAVED_ROSTERS = [];
+  }
 
   var isUrdu = false;
   // The Government of Punjab emblem is embedded in the page itself (not fetched from another address), so the
@@ -1447,6 +1531,7 @@ body[dir="rtl"] .main-col{ direction:rtl; }
 
   // ---------- Save / View / Print ----------
   function saveCurrentRoster(){
+    if(!rosterCan('e')){ rosterDenied(); return; }
     if(!currentRoster){ alert(isUrdu ? 'پہلے ہفتہ بنائیں' : 'Please build a week first'); return; }
     var snapshot = JSON.parse(JSON.stringify(currentRoster));
     snapshot.savedAt = new Date().toISOString().slice(0,16).replace('T',' ');
@@ -1483,7 +1568,7 @@ body[dir="rtl"] .main-col{ direction:rtl; }
         delBtn.textContent = isUrdu ? 'حذف کریں' : 'Delete';
         delBtn.onclick = function(){ deleteSavedRoster(r.id); };
         actions.appendChild(viewBtn);
-        actions.appendChild(delBtn);
+        if(rosterCan('d')){ actions.appendChild(delBtn); }
         box.appendChild(row);
       });
     }
@@ -1510,6 +1595,7 @@ body[dir="rtl"] .main-col{ direction:rtl; }
     if(tabs && tabs.scrollIntoView){ try { tabs.scrollIntoView({behavior:'smooth', block:'start'}); } catch(e){ tabs.scrollIntoView(); } }
   }
   function deleteSavedRoster(id){
+    if(!rosterCan('d')){ rosterDenied(); return; }
     if(!confirm(isUrdu ? 'یہ محفوظ شدہ روسٹر حذف کریں؟' : 'Delete this saved roster?')) return;
     SAVED_ROSTERS = SAVED_ROSTERS.filter(function(r){ return r.id !== id; });
     pushRosterSave(id);
@@ -1631,6 +1717,7 @@ body[dir="rtl"] .main-col{ direction:rtl; }
       '</div>';
   }
   function printCurrentRoster(mode){
+    if(!rosterCan('x')){ rosterDenied(); return; }
     if(!currentRoster){ alert(isUrdu ? 'پہلے ہفتہ بنائیں' : 'Please build a week first'); return; }
     if(mode){ printMode = mode; }
     var r = currentRoster;
@@ -2401,6 +2488,7 @@ body[dir="rtl"] .main-col{ direction:rtl; }
   }
 
   function rosterExportGuard(){
+    if(!rosterCan('x')){ rosterDenied(); return null; }
     var X = rosterExportModel();
     if(!X){ alert(isUrdu ? 'پہلے روسٹر بنائیں اور بینچ منتخب کریں' : 'Please build a roster and select a bench first'); return null; }
     return X;
