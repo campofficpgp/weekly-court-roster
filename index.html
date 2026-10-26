@@ -1191,6 +1191,22 @@ body[dir="rtl"] .main-col{ direction:rtl; }
       return benchSortValue(benches[a].name) - benchSortValue(benches[b].name);
     });
   }
+  /* Benches that actually have at least one case (on the chosen day, or on any day of the week) -- used for printing and
+     for the PDF / Word / Excel downloads so that empty benches (no cases at all) are not printed as blank pages.
+     If every bench is empty, all of them are kept so that something still prints. */
+  function benchHasCases(b, dayIndex){
+    var single = (dayIndex !== null && dayIndex !== undefined && dayIndex !== "");
+    var days = single ? [parseInt(dayIndex, 10)] : [0, 1, 2, 3, 4];
+    return days.some(function(i){
+      var d = b.days && b.days[i];
+      return !!(d && d.cases && d.cases.some(function(c){ return String(c == null ? '' : c).trim(); }));
+    });
+  }
+  function benchPrintOrder(benches, dayIndex){
+    var all = benchDisplayOrder(benches);
+    var withCases = all.filter(function(bi){ return benchHasCases(benches[bi], dayIndex); });
+    return withCases.length ? withCases : all;
+  }
 
   function renderBenchTabs(r){
     var box = document.getElementById('benchTabs');
@@ -1761,7 +1777,7 @@ body[dir="rtl"] .main-col{ direction:rtl; }
       if(!activeBench){ alert(isUrdu ? 'پہلے کوئی بینچ منتخب کریں' : 'Please select a bench first'); return; }
       html = buildPrintPageHtml([activeBench], r, true, true, dayIndex);
     } else {
-      var order = benchDisplayOrder(r.benches);
+      var order = benchPrintOrder(r.benches, dayIndex);
       html = order.map(function(bi, oi){
         return buildPrintPageHtml([r.benches[bi]], r, oi === 0, oi === order.length - 1, dayIndex);
       }).join('');
@@ -1977,7 +1993,7 @@ body[dir="rtl"] .main-col{ direction:rtl; }
     var days = single ? [dayIndex] : [0,1,2,3,4];
     var list;
     if(printMode === 'active'){ var ab = r.benches[activeBenchIndex]; list = ab ? [ab] : []; }
-    else { list = benchDisplayOrder(r.benches).map(function(bi){ return r.benches[bi]; }); }
+    else { list = benchPrintOrder(r.benches, dayIndex).map(function(bi){ return r.benches[bi]; }); }
     if(!list.length) return null;
     var benches = list.map(function(b){
       return {
