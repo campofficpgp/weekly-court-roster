@@ -331,6 +331,7 @@ html,body{overflow-x:hidden;}
   [dir="rtl"] .print-sheet .p-stamp-icons .heading-icon{margin-right:0; margin-left:8px;}
   .print-sheet .p-stamp-icons .heading-icon:hover{opacity:1;}
   .print-sheet .p-stamp-block.editing{display:flex; flex-direction:column; gap:4px;}
+  .print-sheet .stamp-pick{font-size:11.5px; padding:4px 6px; border-radius:5px; border:1px solid var(--gold-deep); width:100%; box-sizing:border-box; font-family:inherit; margin-bottom:4px;}
   .print-sheet .stamp-input{font-size:11.5px; padding:4px 6px; border-radius:5px; border:1px solid var(--gold-deep); width:100%; box-sizing:border-box; font-family:inherit;}
   /* Each Sr.No. entry in the print/preview sheet gets its own separated block, same as the on-screen
      grid, so multiple cases on the same day don't run together into one line. */
@@ -869,6 +870,7 @@ body[dir="rtl"] .main-col{ direction:rtl; }
       overlay.classList.add('hidden');
       if(badge) badge.textContent = user.email || '';
       rosterReadErrorShown = false;
+      loadStampSigners();
       /* read this user's profile (live, so a changed tick applies without reload) and only then open the saved rosters */
       stopRosterListener();
       if(unsubscribeRosterUser){ unsubscribeRosterUser(); unsubscribeRosterUser = null; }
@@ -1669,9 +1671,36 @@ body[dir="rtl"] .main-col{ direction:rtl; }
   var stampLeft = { name: 'Iftikhar Ahmed', designation: 'Junior Clerk', address: 'Camp Office Prosecutor General Punjab\nSupreme Court Of Pakistan\nIslamabad' };
   var stampRight = { name: '', designation: '', address: 'Camp Office Prosecutor General Punjab\nSupreme Court Of Pakistan\nIslamabad' };
   var editingStamp = null; // 'left' | 'right' | null
+  /* Pick-list for the stamp: name + designation + office address. Built-in starting list; if the admin has saved a list in
+     Firestore lookupLists/stampSignatories ({items:[{name,designation,address}]}) that list is used instead. */
+  var STAMP_ADDR = 'Camp Office Prosecutor General Punjab\nSupreme Court Of Pakistan\nIslamabad';
+  var STAMP_SIGNERS = [
+    {name:'Iftikhar Ahmed', designation:'Junior Clerk', address:STAMP_ADDR},
+    {name:'Tariq Siddique', designation:'APG', address:STAMP_ADDR},
+    {name:'Ahmad Raza Gilani', designation:'APG', address:STAMP_ADDR},
+    {name:'Rai Akhtar Hussain', designation:'APG', address:STAMP_ADDR},
+    {name:'M. Irfan Zia', designation:'DPG', address:STAMP_ADDR},
+    {name:'Ms. Memoona Ehsan Ul Haq', designation:'DPG', address:STAMP_ADDR},
+    {name:'Sajjad Hussain', designation:'DPG', address:STAMP_ADDR},
+    {name:'Mirza Abid Majeed', designation:'DPG', address:STAMP_ADDR}
+  ];
+  function loadStampSigners(){
+    try{
+      db.collection('lookupLists').doc('stampSignatories').get().then(function(d){
+        var it = d.exists && d.data() && d.data().items;
+        if(it && it.length){ STAMP_SIGNERS = it.map(function(x){ return {name:String(x.name||''), designation:String(x.designation||''), address:String(x.address||STAMP_ADDR)}; }); }
+      }).catch(function(){});
+    }catch(e){}
+  }
+  function stampPickHtml(side){
+    return '<select class="stamp-pick" data-side="'+side+'" title="'+(isUrdu?'فہرست سے چنیں':'Choose from list')+'">' +
+      '<option value="">'+(isUrdu?'— فہرست سے چنیں (یا نیچے خود لکھیں) —':'— Choose from list (or type below) —')+'</option>' +
+      STAMP_SIGNERS.map(function(x,i){ return '<option value="'+i+'">'+escapeHtml(x.name+(x.designation?' — '+x.designation:''))+'</option>'; }).join('') +
+      '</select>';
+  }
   function stampBlockHtml(side, stamp, editable){
     if(editable && editingStamp === side){
-      return '<div class="p-stamp-block editing" data-side="'+side+'">' +
+      return '<div class="p-stamp-block editing" data-side="'+side+'">' + stampPickHtml(side) +
         '<input type="text" class="stamp-input" data-side="'+side+'" data-field="name" value="'+escapeAttr(stamp.name)+'" placeholder="'+(isUrdu?'نام':'Name')+'">' +
         '<input type="text" class="stamp-input" data-side="'+side+'" data-field="designation" value="'+escapeAttr(stamp.designation)+'" placeholder="'+(isUrdu?'عہدہ':'Designation')+'">' +
         '<textarea class="stamp-input" data-side="'+side+'" data-field="address" rows="'+((stamp.address.match(/\n/g)||[]).length+1)+'" placeholder="'+(isUrdu?'دفتر کا پتہ':'Office Address')+'">'+escapeHtml(stamp.address)+'</textarea>' +
@@ -1800,6 +1829,16 @@ body[dir="rtl"] .main-col{ direction:rtl; }
     if(activePrintInput){ activePrintInput.focus(); activePrintInput.select(); }
   }
 
+  document.getElementById('rosterPrintArea').addEventListener('change', function(e){
+    if(e.target.classList.contains('stamp-pick')){
+      var pk = STAMP_SIGNERS[parseInt(e.target.value, 10)];
+      if(!pk) return;
+      var sd = e.target.dataset.side;
+      document.querySelectorAll('.stamp-input[data-side="'+sd+'"]').forEach(function(inp){
+        var v = pk[inp.dataset.field]; if(v != null){ inp.value = v; if(inp.tagName === 'TEXTAREA'){ inp.rows = (String(v).match(/\n/g)||[]).length + 1; } }
+      });
+    }
+  });
   document.getElementById('rosterPrintArea').addEventListener('click', function(e){
     if(e.target.classList.contains('print-edit')){
       editingPrintField = e.target.dataset.field;
