@@ -692,7 +692,10 @@ body[dir="rtl"] .main-col{ direction:rtl; }
       <div class="modal-close"><span onclick="closeRosterPrint()">✕</span></div>
       <div style="padding:0 20px 20px;">
         <div id="rosterPrintArea" class="print-sheet"></div>
-        <div class="actions" style="padding:16px 0 0; display:flex; gap:10px; flex-wrap:wrap;">
+        <div class="actions" style="padding:16px 0 0; display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
+          <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer;" title="Add the Prepared by / Approved by sign-off at the end of the roster / روسٹر کے آخر میں تیار کردہ / منظور کردہ کا دستخطی خانہ شامل کریں">
+            <input type="checkbox" id="chkStamp" onchange="setIncludeStamp(this.checked)"> <span data-en="Add Prepared by / Approved by stamp" data-ur="تیار کردہ / منظور کردہ کا اسٹامپ شامل کریں">Add Prepared by / Approved by stamp</span>
+          </label>
           <div class="btn primary" data-perm="x" onclick="rosterPrintNow()" data-en="🖨️ Print" data-ur="🖨️ پرنٹ کریں">🖨️ Print</div>
           <div class="btn ghost" data-perm="x" onclick="downloadRosterPdf()" title="Downloads a ready PDF file directly" data-en="📄 Download PDF" data-ur="📄 PDF ڈاؤن لوڈ کریں">📄 Download PDF</div>
           <div class="btn ghost" data-perm="x" onclick="downloadRosterDocx()" title="Downloads a Word file (each bench on its own page)" data-en="📝 Download Word" data-ur="📝 Word ڈاؤن لوڈ کریں">📝 Download Word</div>
@@ -1655,6 +1658,14 @@ body[dir="rtl"] .main-col{ direction:rtl; }
   // Each stamp is a Name / Designation / Office Address block, editable (✎) or clearable (✕) as a
   // whole. The whole week's roster prints as one document (one Bench per page), so this stamp block
   // is placed, and editable, only on the LAST printed page — see buildPrintPageHtml.
+  /* The "Prepared by / Approved by" sign-off stamp is OPTIONAL: it is left out unless the box in the print preview is ticked. */
+  var includeStamp = false;
+  try { includeStamp = localStorage.getItem('rosterIncludeStamp') === '1'; } catch (e) {}
+  function setIncludeStamp(on){
+    includeStamp = !!on;
+    try { localStorage.setItem('rosterIncludeStamp', includeStamp ? '1' : '0'); } catch (e) {}
+    printCurrentRoster();   /* redraw the preview with / without the stamp */
+  }
   var stampLeft = { name: 'Iftikhar Ahmed', designation: 'Junior Clerk', address: 'Camp Office Prosecutor General Punjab\nSupreme Court Of Pakistan\nIslamabad' };
   var stampRight = { name: '', designation: '', address: 'Camp Office Prosecutor General Punjab\nSupreme Court Of Pakistan\nIslamabad' };
   var editingStamp = null; // 'left' | 'right' | null
@@ -1761,7 +1772,7 @@ body[dir="rtl"] .main-col{ direction:rtl; }
     return '<div class="p-page'+(isLastPage?'':' p-page-break')+'">' +
       buildLetterheadHtml(r, editableHeader, dayIndex) +
       buildBenchTableHtml(benches, r, dayIndex) +
-      (isLastPage ? buildSignHtml(true) : '') +
+      ((isLastPage && includeStamp) ? buildSignHtml(true) : '') +
       '</div>';
   }
   function printCurrentRoster(mode){
@@ -1784,6 +1795,7 @@ body[dir="rtl"] .main-col{ direction:rtl; }
     }
     document.getElementById('rosterPrintArea').innerHTML = html;
     document.getElementById('rosterPrintModal').classList.add('open');
+    var chkSt = document.getElementById('chkStamp'); if(chkSt) chkSt.checked = includeStamp;
     var activePrintInput = document.querySelector('.print-heading-input') || document.querySelector('.stamp-input');
     if(activePrintInput){ activePrintInput.focus(); activePrintInput.select(); }
   }
@@ -2247,7 +2259,7 @@ body[dir="rtl"] .main-col{ direction:rtl; }
       for(var sn = 0; sn < nStrips; sn++){
         await drawStrip(B, perCol.map(function(arr){ return arr[sn] || []; }), sn);
       }
-      if(bi === X.benches.length - 1){ await signOff(); }
+      if(bi === X.benches.length - 1 && includeStamp){ await signOff(); }
     }
 
     var tot = pages.length;
@@ -2360,7 +2372,7 @@ body[dir="rtl"] .main-col{ direction:rtl; }
     X.benches.forEach(function(B, bi){
       kids = kids.concat(letterheadBlock(bi === 0), infoBlock(B), [tableBlock(B)]);
     });
-    kids = kids.concat(signBlock());
+    if(includeStamp){ kids = kids.concat(signBlock()); }
     var footer = new D.Footer({children:[new D.Paragraph({alignment:AL.CENTER, children:[
       new D.TextRun({text:'Camp Office Prosecutor General Punjab  |  Supreme Court of Pakistan, Islamabad  |  Generated ' + X.genDate + '  |  Page ', font:FONT, size:14, color:'666666'}),
       new D.TextRun({children:[D.PageNumber.CURRENT], font:FONT, size:14, bold:true, color:'1B3F63'}),
@@ -2437,7 +2449,7 @@ body[dir="rtl"] .main-col{ direction:rtl; }
           }, Math.min(400, 5 + 12 * mx));
         })(k);
       }
-      if(bi === X.benches.length - 1){
+      if(bi === X.benches.length - 1 && includeStamp){
         addRow(function(){ return ''; }, 14);
         var sl = stampLines(stampLeft), sr2 = stampLines(stampRight), mxl = Math.max(sl.length, sr2.length);
         addRow(function(rn){ return t('A'+rn, 'PREPARED BY', 11) + (lastCol > 0 ? t(L+rn, 'APPROVED BY', 16) : ''); }, 14);
