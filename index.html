@@ -475,6 +475,7 @@ body[dir="rtl"] .main-col{ direction:rtl; }
 <script>window.CAMP_REQUIRE_APPROVED=true;window.CAMP_WRITE_ROLES=['admin','super_admin'];</script>
 <script src="/auth-guard.js" defer></script>
 <script src="/logo-control.js?v=2" defer></script>
+<script src="/stamp-signers.js?v=2"></script>
 </head>
 <body>
 
@@ -1671,32 +1672,10 @@ body[dir="rtl"] .main-col{ direction:rtl; }
   var stampLeft = { name: 'Iftikhar Ahmed', designation: 'Junior Clerk', address: 'Camp Office Prosecutor General Punjab\nSupreme Court Of Pakistan\nIslamabad' };
   var stampRight = { name: '', designation: '', address: 'Camp Office Prosecutor General Punjab\nSupreme Court Of Pakistan\nIslamabad' };
   var editingStamp = null; // 'left' | 'right' | null
-  /* Pick-list for the stamp: name + designation + office address. Built-in starting list; if the admin has saved a list in
-     Firestore lookupLists/stampSignatories ({items:[{name,designation,address}]}) that list is used instead. */
-  var STAMP_ADDR = 'Camp Office Prosecutor General Punjab\nSupreme Court Of Pakistan\nIslamabad';
-  var STAMP_SIGNERS = [
-    {name:'Iftikhar Ahmed', designation:'Junior Clerk', address:STAMP_ADDR},
-    {name:'Tariq Siddique', designation:'APG', address:STAMP_ADDR},
-    {name:'Ahmad Raza Gilani', designation:'APG', address:STAMP_ADDR},
-    {name:'Rai Akhtar Hussain', designation:'APG', address:STAMP_ADDR},
-    {name:'M. Irfan Zia', designation:'DPG', address:STAMP_ADDR},
-    {name:'Ms. Memoona Ehsan Ul Haq', designation:'DPG', address:STAMP_ADDR},
-    {name:'Sajjad Hussain', designation:'DPG', address:STAMP_ADDR},
-    {name:'Mirza Abid Majeed', designation:'DPG', address:STAMP_ADDR}
-  ];
-  function loadStampSigners(){
-    try{
-      db.collection('lookupLists').doc('stampSignatories').get().then(function(d){
-        var it = d.exists && d.data() && d.data().items;
-        if(it && it.length){ STAMP_SIGNERS = it.map(function(x){ return {name:String(x.name||''), designation:String(x.designation||''), address:String(x.address||STAMP_ADDR)}; }); }
-      }).catch(function(){});
-    }catch(e){}
-  }
+  /* Pick-list for the stamp (name + designation + office address) comes from the shared /stamp-signers.js; admins can change the list with "Edit list". */
+  function loadStampSigners(){ try{ if(window.StampSigners) StampSigners.load(db); }catch(e){} }
   function stampPickHtml(side){
-    return '<select class="stamp-pick" data-side="'+side+'" title="'+(isUrdu?'فہرست سے چنیں':'Choose from list')+'">' +
-      '<option value="">'+(isUrdu?'— فہرست سے چنیں (یا نیچے خود لکھیں) —':'— Choose from list (or type below) —')+'</option>' +
-      STAMP_SIGNERS.map(function(x,i){ return '<option value="'+i+'">'+escapeHtml(x.name+(x.designation?' — '+x.designation:''))+'</option>'; }).join('') +
-      '</select>';
+    return window.StampSigners ? ('<select class="stamp-pick" data-side="'+side+'" title="'+(isUrdu?'فہرست سے چنیں':'Choose from list')+'">' + StampSigners.options(isUrdu) + '</select>' + StampSigners.manageLinkHtml(isUrdu)) : '';
   }
   function stampBlockHtml(side, stamp, editable){
     if(editable && editingStamp === side){
@@ -1831,7 +1810,7 @@ body[dir="rtl"] .main-col{ direction:rtl; }
 
   document.getElementById('rosterPrintArea').addEventListener('change', function(e){
     if(e.target.classList.contains('stamp-pick')){
-      var pk = STAMP_SIGNERS[parseInt(e.target.value, 10)];
+      var pk = window.StampSigners ? StampSigners.get(e.target.value) : null;
       if(!pk) return;
       var sd = e.target.dataset.side;
       document.querySelectorAll('.stamp-input[data-side="'+sd+'"]').forEach(function(inp){
