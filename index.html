@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Weekly Court Roster — Camp Office PG Punjab</title>
+<title>Weekly Court Roster</title>
 <link rel="icon" href="favicon.ico" sizes="any">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png">
 <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
@@ -426,7 +426,7 @@ html,body{overflow-x:hidden;}
   .app-footer{ display:none; }
 }
 
-/* ================= Shared navigation sidebar (same look as the other Camp Office systems) ================= */
+/* ================= Shared navigation sidebar (same look as the other systems) ================= */
 :root{ --sidebar-bg:#17294a; --sidebar-bg2:#223c72; --sidebar-text:#e4e9f5; --sidebar-muted:#9caed0; }
 .app-shell{ display:flex; min-height:100vh; direction:ltr; }
 .sidebar{ width:230px; flex:none; background:linear-gradient(180deg,var(--sidebar-bg2) 0%, var(--sidebar-bg) 100%); color:var(--sidebar-text); display:flex; flex-direction:column; position:sticky; top:0; height:100vh; overflow-y:auto; transition:transform .18s ease; z-index:40; }
@@ -610,7 +610,7 @@ body[data-theme="night"] .userbar-ce .logout-btn:hover{ background:rgba(255,156,
       <div style="text-align:center;margin-top:10px;"><a href="#" id="forgotPasswordLink" style="font-size:12.5px;color:#1F4E78;text-decoration:underline;" data-en="Forgot password?" data-ur="پاس ورڈ بھول گئے؟">Forgot password?</a></div>
     <div style="text-align:center;margin-top:8px;"><a href="https://cmpofficepgp.org/camp-office-suite/#request" style="font-size:12.5px;color:#1F4E78;font-weight:700;text-decoration:underline;">اکاؤنٹ نہیں ہے؟ درخواست دیں / Request an account</a></div>
       <div class="login-error" id="loginError"></div>
-      <div class="login-hint" data-en="Use the same office login as the other Camp Office systems." data-ur="وہی دفتری لاگ اِن استعمال کریں جو دیگر کیمپ آفس سسٹمز میں چلتا ہے۔">Use the same office login as the other Camp Office systems.</div>
+      <div class="login-hint" data-en="Use the same office login as the other systems." data-ur="وہی دفتری لاگ اِن استعمال کریں جو دیگر سسٹمز میں چلتا ہے۔">Use the same office login as the other systems.</div>
     </div>
   </div>
 
@@ -618,7 +618,7 @@ body[data-theme="night"] .userbar-ce .logout-btn:hover{ background:rgba(255,156,
     <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
     <aside class="sidebar" id="sidebar">
       <div class="sidebar-head">
-        <div class="sidebar-brand"><img src="https://cmpofficepgp.org/camp-office-suite/logo-punjab-govt.png" alt="" style="height:24px;width:auto;"> <span>Camp Office</span></div>
+        <div class="sidebar-brand"><img src="https://cmpofficepgp.org/camp-office-suite/logo-punjab-govt.png" alt="" style="height:24px;width:auto;"> <span></span></div>
       </div>
       <nav class="sidebar-nav">
         <a class="nav-item" href="https://cmpofficepgp.org/camp-office-suite/"><span class="ico">🏠</span><span class="label">Dashboard</span></a>
@@ -671,7 +671,7 @@ body[data-theme="night"] .userbar-ce .logout-btn:hover{ background:rgba(255,156,
         <button onclick="closeHelp()" data-en="Close" data-ur="بند کریں">Close</button>
       </div>
       <div class="help-body">
-        <p class="help-intro" data-en="This tool is shared by the whole office using the same office login as the other Camp Office systems — everything is saved online immediately and everyone sees the same roster." data-ur="یہ ٹول پورے دفتر میں دیگر Camp Office سسٹمز جیسے ہی مشترکہ دفتری لاگ اِن سے استعمال ہوتا ہے — ہر چیز فوراً آن لائن محفوظ ہو جاتی ہے اور سب کو وہی روسٹر نظر آتا ہے۔">This tool is shared by the whole office using the same office login as the other Camp Office systems — everything is saved online immediately and everyone sees the same roster.</p>
+        <p class="help-intro" data-en="This tool is shared by the whole office using the same office login as the other systems — everything is saved online immediately and everyone sees the same roster." data-ur="یہ ٹول پورے دفتر میں دیگر سسٹمز جیسے ہی مشترکہ دفتری لاگ اِن سے استعمال ہوتا ہے — ہر چیز فوراً آن لائن محفوظ ہو جاتی ہے اور سب کو وہی روسٹر نظر آتا ہے۔">This tool is shared by the whole office using the same office login as the other systems — everything is saved online immediately and everyone sees the same roster.</p>
         <details class="faq-item">
           <summary data-en="How do I build this week's roster?" data-ur="اس ہفتے کا روسٹر کیسے بناؤں؟">How do I build this week's roster?</summary>
           <div class="faq-answer" data-en="Pick the Monday it starts from under 'Week Starting', then click 'Build This Week's Grid' to create an empty grid you can fill in." data-ur="'ہفتہ شروع' کے تحت وہ پیر منتخب کریں جس سے ہفتہ شروع ہوتا ہے، پھر 'اس ہفتے کا گرڈ بنائیں' پر کلک کریں تاکہ خالی گرڈ بن جائے جسے آپ بھر سکیں۔">Pick the Monday it starts from under "Week Starting", then click "Build This Week's Grid" to create an empty grid you can fill in.</div>
@@ -706,7 +706,7 @@ body[data-theme="night"] .userbar-ce .logout-btn:hover{ background:rgba(255,156,
         </details>
         <details class="faq-item">
           <summary data-en="Who can see this roster — is it private to our office?" data-ur="یہ روسٹر کون دیکھ سکتا ہے — کیا یہ صرف ہمارے آفس کے لیے محفوظ ہے؟">Who can see this roster — is it private to our office?</summary>
-          <div class="faq-answer" data-en="Only people signed in with the shared office login used across the Camp Office systems can see it, and access is further enforced by the database's own security rules." data-ur="صرف وہی لوگ دیکھ سکتے ہیں جو Camp Office سسٹمز کے مشترکہ دفتری لاگ اِن سے سائن اِن ہوں، اور رسائی مزید ڈیٹا بیس کے اپنے سیکیورٹی rules سے محفوظ ہے۔">Only people signed in with the shared office login used across the Camp Office systems can see it, and access is further enforced by the database's own security rules.</div>
+          <div class="faq-answer" data-en="Only people signed in with the shared office login used across the systems can see it, and access is further enforced by the database's own security rules." data-ur="صرف وہی لوگ دیکھ سکتے ہیں جو سسٹمز کے مشترکہ دفتری لاگ اِن سے سائن اِن ہوں، اور رسائی مزید ڈیٹا بیس کے اپنے سیکیورٹی rules سے محفوظ ہے۔">Only people signed in with the shared office login used across the systems can see it, and access is further enforced by the database's own security rules.</div>
         </details>
       </div>
     </div>
@@ -767,7 +767,7 @@ body[data-theme="night"] .userbar-ce .logout-btn:hover{ background:rgba(255,156,
         <div class="btn ghost" data-perm="x" onclick="printCurrentRoster('active')" data-en="🖨️ Print / Preview (This Bench Only)" data-ur="🖨️ پرنٹ / پیش منظر (صرف یہ بینچ)">🖨️ Print / Preview (This Bench Only)</div>
         <div class="btn ghost" data-perm="x" onclick="printCurrentRoster('all')" data-en="🖨️ Print / Preview (All Benches — each on its own page)" data-ur="🖨️ پرنٹ / پیش منظر (تمام بینچز — ہر ایک الگ صفحے پر)">🖨️ Print / Preview (All Benches — each on its own page)</div>
       </div>
-      <div class="disclaimer" data-en="This saves to the shared online database (same as the other Camp Office systems) — every signed-in device sees the same saved rosters." data-ur="یہ مشترکہ آن لائن ڈیٹا بیس میں محفوظ ہوتا ہے (دفتر کے باقی سسٹمز کی طرح) — ہر سائن اِن شدہ ڈیوائس پر وہی محفوظ شدہ روسٹرز نظر آتے ہیں۔">This saves to the shared online database (same as the other Camp Office systems) — every signed-in device sees the same saved rosters.</div>
+      <div class="disclaimer" data-en="This saves to the shared online database (same as the other systems) — every signed-in device sees the same saved rosters." data-ur="یہ مشترکہ آن لائن ڈیٹا بیس میں محفوظ ہوتا ہے (دفتر کے باقی سسٹمز کی طرح) — ہر سائن اِن شدہ ڈیوائس پر وہی محفوظ شدہ روسٹرز نظر آتے ہیں۔">This saves to the shared online database (same as the other systems) — every signed-in device sees the same saved rosters.</div>
     </div>
 
   </div>
@@ -1783,8 +1783,8 @@ body[data-theme="night"] .userbar-ce .logout-btn:hover{ background:rgba(255,156,
     try { localStorage.setItem('campoffice_includeStamp_v1', includeStamp ? '1' : '0'); } catch (e) {}
     printCurrentRoster();   /* redraw the preview with / without the stamp */
   }
-  var stampLeft = { name: 'Iftikhar Ahmed', designation: 'Junior Clerk', address: 'Camp Office Prosecutor General Punjab\nSupreme Court Of Pakistan\nIslamabad' };
-  var stampRight = { name: '', designation: '', address: 'Camp Office Prosecutor General Punjab\nSupreme Court Of Pakistan\nIslamabad' };
+  var stampLeft = { name: 'Iftikhar Ahmed', designation: 'Junior Clerk', address: '' };
+  var stampRight = { name: '', designation: '', address: '' };
   var editingStamp = null; // 'left' | 'right' | null
   /* Pick-list for the stamp (name + designation + office address) comes from the shared /stamp-signers.js; admins can change the list with "Edit list". */
   function loadStampSigners(){ try{ if(window.StampSigners) StampSigners.load(db); }catch(e){} }
@@ -2397,15 +2397,15 @@ body[data-theme="night"] .userbar-ce .logout-btn:hover{ background:rgba(255,156,
     var tot = pages.length;
     pages.forEach(function(pg, i){
       pg.drawLine({start:{x:MG, y:30}, end:{x:PW - MG, y:30}, thickness:0.6, color:BORDER});
-      pg.drawText('Camp Office Prosecutor General Punjab  |  Supreme Court of Pakistan, Islamabad', {x:MG, y:19, size:7, font:fR, color:GREYTX});
+      pg.drawText('', {x:MG, y:19, size:7, font:fR, color:GREYTX});
       var mid = 'Generated ' + X.genDate, mw = fR.widthOfTextAtSize(mid, 7);
       pg.drawText(mid, {x:(PW - mw) / 2, y:19, size:7, font:fR, color:GREYTX});
       var pn = 'Page ' + (i + 1) + ' of ' + tot, pw0 = fB.widthOfTextAtSize(pn, 7.4);
       pg.drawText(pn, {x:PW - MG - pw0, y:19, size:7.4, font:fB, color:NAVY});
     });
     doc.setTitle(pdfSafe(X.title));
-    doc.setCreator('Camp Office, Prosecutor General Punjab');
-    doc.setAuthor((stampLeft.name && stampLeft.name.trim()) ? pdfSafe(stampLeft.name.trim()) : 'Camp Office, Prosecutor General Punjab');
+    doc.setCreator('');
+    doc.setAuthor((stampLeft.name && stampLeft.name.trim()) ? pdfSafe(stampLeft.name.trim()) : '');
     return await doc.save();
   }
 
@@ -2506,13 +2506,13 @@ body[data-theme="night"] .userbar-ce .logout-btn:hover{ background:rgba(255,156,
     });
     if(includeStamp){ kids = kids.concat(signBlock()); }
     var footer = new D.Footer({children:[new D.Paragraph({alignment:AL.CENTER, children:[
-      new D.TextRun({text:'Camp Office Prosecutor General Punjab  |  Supreme Court of Pakistan, Islamabad  |  Generated ' + X.genDate + '  |  Page ', font:FONT, size:14, color:'666666'}),
+      new D.TextRun({text:'Generated ' + X.genDate + '  |  Page ', font:FONT, size:14, color:'666666'}),
       new D.TextRun({children:[D.PageNumber.CURRENT], font:FONT, size:14, bold:true, color:'1B3F63'}),
       new D.TextRun({text:' of ', font:FONT, size:14, color:'666666'}),
       new D.TextRun({children:[D.PageNumber.TOTAL_PAGES], font:FONT, size:14, bold:true, color:'1B3F63'})
     ]})]});
     var doc = new D.Document({
-      creator:'Camp Office, Prosecutor General Punjab', title:X.title,
+      creator:'', title:X.title,
       sections:[{
         properties:{page:{size:{width:11906, height:16838, orientation:D.PageOrientation.LANDSCAPE}, margin:{top:567, bottom:680, left:567, right:567, footer:300}}},
         footers:{default:footer},
@@ -2640,7 +2640,7 @@ body[data-theme="night"] .userbar-ce .logout-btn:hover{ background:rgba(255,156,
       '</cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>';
 
     var NS_MAIN = 'http://schemas.openxmlformats.org/spreadsheetml/2006/main', NS_R = 'http://schemas.openxmlformats.org/officeDocument/2006/relationships';
-    var footerTxt = '&amp;L&amp;"Arial,Regular"&amp;7Camp Office Prosecutor General Punjab  |  Supreme Court of Pakistan, Islamabad&amp;C&amp;"Arial,Regular"&amp;7Generated ' + xmlEsc(X.genDate) + '&amp;R&amp;"Arial,Bold"&amp;7Page &amp;P of &amp;N';
+    var footerTxt = '&amp;C&amp;"Arial,Regular"&amp;7Generated ' + xmlEsc(X.genDate) + '&amp;R&amp;"Arial,Bold"&amp;7Page &amp;P of &amp;N';
     var logoH = 56, logoW = Math.round(logoH * PUNJAB_LOGO_RATIO);
     var gBytes = punjabLogoBytes(), pI = window.CampLogos ? await CampLogos.info('pros') : null;
     function drawingXml(){
@@ -2718,8 +2718,8 @@ body[data-theme="night"] .userbar-ce .logout-btn:hover{ background:rgba(255,156,
 
   // Page heading (top bar) — editable in place (✎ edit, ↺ reset to default), separately for each
   // language, so a correction to the office name doesn't need touching the file.
-  var DEFAULT_HEADING_EN = 'Camp Office Prosecutor General Punjab\nSupreme Court Of Pakistan\nIslamabad';
-  var DEFAULT_HEADING_UR = 'کیمپ آفس پراسیکیوٹر جنرل پنجاب\nسپریم کورٹ آف پاکستان\nاسلام آباد';
+  var DEFAULT_HEADING_EN = '';
+  var DEFAULT_HEADING_UR = '';
   var headingEn = DEFAULT_HEADING_EN;
   var headingUr = DEFAULT_HEADING_UR;
   var editingHeading = false;
@@ -3619,11 +3619,11 @@ body[data-theme="night"] .userbar-ce .logout-btn:hover{ background:rgba(255,156,
   buildWeek();
 </script>
 
-  <div class="app-footer">© Iftikhar Ahmed — Camp Office, Prosecutor General Punjab, Supreme Court of Pakistan, Islamabad</div>
+  <div class="app-footer">© Iftikhar Ahmed</div>
     </div><!-- /.main-col -->
   </div><!-- /.app-shell -->
 <script>
-  /* Shared sidebar / mobile-drawer interactivity (same behaviour as the other Camp Office systems) */
+  /* Shared sidebar / mobile-drawer interactivity (same behaviour as the other systems) */
   (function(){
     var sidebarEl = document.getElementById('sidebar');
     var backdrop = document.getElementById('sidebarBackdrop');
