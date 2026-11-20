@@ -752,6 +752,16 @@ body[data-theme="night"] .userbar-ce .logout-btn:hover{ background:rgba(255,156,
       </div>
     </div>
 
+    <div class="search-box" id="clFromListBox">
+      <div class="lbl" data-en="Build from a saved Cause List (recommended — the same cases you ticked in Cause List Import, each day's own judges, after-noon benches on their own line)" data-ur="محفوظ شدہ کاز لسٹ سے روسٹر بنائیں (تجویز کردہ — وہی کیسز جو کاز لسٹ امپورٹ میں منتخب کیے، ہر دن کے اپنے ججز، بعد دوپہر والے بینچ الگ لائن میں)">Build from a saved Cause List (recommended — the same cases you ticked in Cause List Import, each day's own judges, after-noon benches on their own line)</div>
+      <div class="search-grid">
+        <div class="field"><label data-en="Saved Cause List" data-ur="محفوظ شدہ کاز لسٹ">Saved Cause List</label><select id="clListSel"><option value="">…</option></select></div>
+        <div class="field" style="display:flex; align-items:flex-end;"><div class="btn primary" data-perm="e" onclick="clBuildFromList()" data-en="📋 Build Roster from this List" data-ur="📋 اس لسٹ سے روسٹر بنائیں">📋 Build Roster from this List</div></div>
+        <div class="field" style="display:flex; align-items:flex-end;"><div class="btn ghost" onclick="clCheckRoster()" data-en="✔ Check Roster against Cause List" data-ur="✔ روسٹر کو کاز لسٹ سے چیک کریں">✔ Check Roster against Cause List</div></div>
+      </div>
+      <div id="clFromListMsg" style="font-size:12.5px;color:var(--muted);margin-top:6px;"></div>
+    </div>
+
     <div class="search-box" id="pdfImportBox">
       <div class="lbl" data-en="Import from Cause List PDF (fully automatic — the week's roster builds itself; review the report below and fix anything flagged)" data-ur="کاز لسٹ PDF سے درآمد کریں (مکمل خودکار — ہفتے کا روسٹر خود بن جاتا ہے؛ نیچے رپورٹ دیکھیں اور نشان زدہ چیزیں ٹھیک کریں)">Import from Cause List PDF (fully automatic — the week's roster builds itself; review the report below and fix anything flagged)</div>
       <div class="search-grid">
@@ -790,6 +800,7 @@ body[data-theme="night"] .userbar-ce .logout-btn:hover{ background:rgba(255,156,
       </div>
       <div style="margin-top:14px; display:flex; gap:10px; flex-wrap:wrap;">
         <div class="btn gold" data-perm="e" onclick="saveCurrentRoster()" data-en="💾 Save This Week's Roster" data-ur="💾 اس ہفتے کا روسٹر محفوظ کریں">💾 Save This Week's Roster</div>
+        <div class="btn ghost" onclick="clCheckRoster()" data-en="✔ Check before printing" data-ur="✔ پرنٹ سے پہلے چیک کریں">✔ Check before printing</div>
         <select id="rosterDaySelect" style="padding:9px 12px;border-radius:8px;border:1px solid var(--border);font-size:13px;font-family:inherit;background:#fff;" title="Only include one day of the week in the print/PDF, instead of the whole week / صرف ہفتے کا ایک دن پرنٹ/PDF میں شامل کریں"></select>
         <div class="btn ghost" data-perm="x" onclick="printCurrentRoster('active')" data-en="🖨️ Print / Preview (This Bench Only)" data-ur="🖨️ پرنٹ / پیش منظر (صرف یہ بینچ)">🖨️ Print / Preview (This Bench Only)</div>
         <div class="btn ghost" data-perm="x" onclick="printCurrentRoster('all')" data-en="🖨️ Print / Preview (All Benches — each on its own page)" data-ur="🖨️ پرنٹ / پیش منظر (تمام بینچز — ہر ایک الگ صفحے پر)">🖨️ Print / Preview (All Benches — each on its own page)</div>
@@ -1053,6 +1064,7 @@ body[data-theme="night"] .userbar-ce .logout-btn:hover{ background:rgba(255,156,
 
   /* the saved-rosters live listener (only runs for a user who has the View tick) */
   function startRosterListener(){
+    if(typeof clLoadLists === 'function'){ setTimeout(function(){ clLoadLists().catch(function(){}); }, 300); }
     if(unsubscribeRosterDoc) unsubscribeRosterDoc();
     unsubscribeRosterDoc = ROSTER_DOC_REF.onSnapshot(function(snap){
       if(suppressNextRosterSnapshot){ suppressNextRosterSnapshot = false; return; }
@@ -1140,6 +1152,8 @@ body[data-theme="night"] .userbar-ce .logout-btn:hover{ background:rgba(255,156,
         if(dotIdx !== -1){ srNo = rest.slice(0, dotIdx); rest = rest.slice(dotIdx+2); }
       } else if(rest.indexOf('in ') === 0){
         rest = rest.slice(3);
+      } else if(rest.indexOf('and ') === 0){
+        rest = rest.slice(4);
       }
       var it = parseCaseItemStr(rest);
       if(it) items.push(it);
@@ -1246,7 +1260,8 @@ body[data-theme="night"] .userbar-ce .logout-btn:hover{ background:rgba(255,156,
       for(var i = 0; i < 5; i++){
         var prev = prevByBench[b.name] && prevByBench[b.name][i];
         days.push({
-          cases: prev && prev.cases ? prev.cases.slice() : []
+          cases: prev && prev.cases ? prev.cases.slice() : [],
+          judges: prev && prev.judges ? prev.judges.slice() : []
         });
       }
       // judgesList/judgesNotes come fresh from BENCHES (the master list) each time, so an edit you make
@@ -1260,8 +1275,15 @@ body[data-theme="night"] .userbar-ce .logout-btn:hover{ background:rgba(255,156,
       };
     });
 
+    // benches that came from a saved cause list and are not in the master list (e.g. an after-noon sitting) stay too
+    if(currentRoster && currentRoster.weekStart === weekStart){
+      currentRoster.benches.forEach(function(b){
+        if(!BENCHES.some(function(m){ return m.name === b.name; })) benches.push(JSON.parse(JSON.stringify(b)));
+      });
+    }
     currentRoster = { weekStart: weekStart, dates: dates.map(formatDate), benches: benches };
     renderAll(currentRoster);
+    if(typeof clFillSelect === 'function') clFillSelect();
   }
 
   function dayHeadName(i){ return isUrdu ? DAYS_UR[i] : DAYS_EN[i]; }
@@ -1376,7 +1398,7 @@ body[data-theme="night"] .userbar-ce .logout-btn:hover{ background:rgba(255,156,
     var html = '';
     benchDisplayOrder(r.benches).forEach(function(bi){
       var b = r.benches[bi];
-      html += '<span class="bench-tab'+(bi===activeBenchIndex?' active':'')+'" data-bi="'+bi+'">'+escapeHtml(b.name)+'</span>';
+      html += '<span class="bench-tab'+(bi===activeBenchIndex?' active':'')+(clIsSitting(b)?' cl-sit':'')+'" data-bi="'+bi+'">'+(clIsSitting(b)?'🕐 ':'')+escapeHtml(b.name)+'</span>';
     });
     box.innerHTML = html;
     renderRosterDaySelect(r);
@@ -1535,7 +1557,7 @@ body[data-theme="night"] .userbar-ce .logout-btn:hover{ background:rgba(255,156,
       '<td class="day-cell" style="background:#f7f5ec; font-weight:600; color:var(--navy);">'+(isUrdu?'روزانہ':'Daily')+'</td>';
     for(var i = 0; i < 5; i++){
       var day = b.days[i];
-      html += '<td class="day-cell">' +
+      html += '<td class="day-cell">' + clDayJudgesHtml(b, i) +
         '<div class="case-chip-list">' +
         day.cases.map(function(c, ci){
           return '<span class="chip small" data-bi="'+bi+'" data-di="'+i+'" data-cidx="'+ci+'">'+escapeHtml(c)+' <span class="chip-edit" data-kind="case" data-bi="'+bi+'" data-di="'+i+'" data-cidx="'+ci+'" title="'+(isUrdu?'ترمیم کریں':'Edit')+'">✎</span><span class="chip-x" data-kind="case" data-bi="'+bi+'" data-di="'+i+'" data-cidx="'+ci+'">✕</span></span>';
@@ -1900,8 +1922,9 @@ body[data-theme="night"] .userbar-ce .logout-btn:hover{ background:rgba(255,156,
     var single = (dayIndex!==null && dayIndex!==undefined && dayIndex!=="");
     var dayList = single ? [parseInt(dayIndex,10)] : [0,1,2,3,4];
     return benches.map(function(b){
-      var judgesLine = (b.judgesList && b.judgesList.length) ? b.judgesList.join(', ') : '';
-      var notes = (b.judgesNotes || []).filter(function(n){ return String(n).trim(); });
+      var jInfo = benchJudgeInfo(b, r, dayList);
+      var judgesLine = jInfo.line;
+      var notes = jInfo.notes;
       var info = '<div class="p-info"><div class="p-info-row">' +
         '<div class="p-info-bench"><div class="p-lab">BENCH</div><div class="p-val">'+(escapeHtml(b.name || '') || '—')+'</div></div>' +
         '<div class="p-info-off"><div class="p-lab">OFFICER</div><div class="p-val">'+(escapeHtml(b.officer || '') || '—')+'</div></div></div>' +
@@ -2185,7 +2208,7 @@ body[data-theme="night"] .userbar-ce .logout-btn:hover{ background:rgba(255,156,
     var benches = list.map(function(b){
       return {
         name: String(b.name || ''), officer: String(b.officer || ''),
-        judges: (b.judgesList || []).join(', '), notes: (b.judgesNotes || []).filter(function(n){ return String(n).trim(); }),
+        judges: benchJudgeInfo(b, r, days).line, notes: benchJudgeInfo(b, r, days).notes,
         cols: days.map(function(i){
           var d = b.days && b.days[i];
           return { head: DAYS_EN[i], date: String(r.dates[i] || ''),
@@ -3271,6 +3294,256 @@ body[data-theme="night"] .userbar-ce .logout-btn:hover{ background:rgba(255,156,
   var headingUr = DEFAULT_HEADING_UR;
   var editingHeading = false;
 
+  /* ================= Build the roster from a saved Cause List  +  Check the roster (Nov 2026) =================
+     Why: the bench NUMBER is fixed but the JUDGES sitting on it change from day to day, and an after-noon sitting
+     ("After Noon Bench at 1:00 PM") is a separate court with its own judges. The roster used to keep one judges list
+     per bench for the whole week and read the PDF on its own (so its cases could differ from Cause List Import).
+     Now: (1) every day keeps its own judges, (2) the roster can be built straight from a list saved in Cause List
+     Import (same ticked cases), (3) an after-noon sitting gets its own line, (4) "Check" compares the roster with the
+     saved cause list and lists every difference before printing. */
+  (function(){
+    var st = document.createElement('style');
+    st.textContent = '.day-judges{font-size:11px;line-height:1.35;color:#5b4a12;background:#fff7e0;border:1px solid #efd99a;border-radius:8px;padding:4px 7px;margin-bottom:6px;font-weight:600}' +
+      '.bench-tab.cl-sit{border-color:#d4a13d!important;background:#fff7e0;color:#7a5a00}.bench-tab.cl-sit.active{background:#d4a13d;color:#fff}' +
+      '#clCheckOverlay{position:fixed;inset:0;z-index:2147482500;background:rgba(15,23,42,.55);display:flex;align-items:flex-start;justify-content:center;padding:24px 12px;overflow:auto}' +
+      '#clCheckOverlay .clc-card{background:#fff;color:#1f2937;max-width:860px;width:100%;border-radius:14px;padding:18px 20px;box-shadow:0 20px 50px rgba(0,0,0,.35);font-size:13.5px;line-height:1.5}' +
+      '#clCheckOverlay h3{margin:0 0 6px;font-size:17px}#clCheckOverlay .clc-ok{background:#e6f4ea;color:#1b5e20;border-radius:10px;padding:10px 12px;font-weight:700}' +
+      '#clCheckOverlay .clc-bad{background:#fdecea;color:#8a1c12;border-radius:10px;padding:10px 12px;font-weight:700;margin-bottom:10px}' +
+      '#clCheckOverlay table{width:100%;border-collapse:collapse;margin-top:8px}#clCheckOverlay th,#clCheckOverlay td{border:1px solid #e5e7eb;padding:6px 8px;text-align:start;vertical-align:top}' +
+      '#clCheckOverlay th{background:#f3f4f6}#clCheckOverlay .clc-x{float:inline-end;cursor:pointer;border:1px solid #d1d5db;border-radius:8px;padding:3px 10px;background:#fff}';
+    document.head.appendChild(st);
+  })();
+  var CL_LISTS = null;
+  function clPad(n){ return String(n).padStart(2, '0'); }
+  function clIsoOf(d){ return d.getFullYear() + '-' + clPad(d.getMonth() + 1) + '-' + clPad(d.getDate()); }
+  function clMonday(iso){ var d = new Date(String(iso) + 'T00:00:00'); if(isNaN(d)) return ''; d.setDate(d.getDate() - ((d.getDay() + 6) % 7)); return clIsoOf(d); }
+  function clNormName(s){ return String(s || '').toLowerCase().replace(/^\s*justice\s+/, '').replace(/,?\s*h?cj\b/, '').replace(/[^a-z]/g, ''); }
+  function clJudgeName(raw){
+    var k = clNormName(raw);
+    for(var i = 0; i < JUDGES.length; i++){ if(clNormName(JUDGES[i]) === k) return JUDGES[i]; }
+    var t = String(raw || '').trim().toLowerCase().replace(/\b([a-z])/g, function(m){ return m.toUpperCase(); }).replace(/\bHcj\b/g, 'HCJ').replace(/\bCj\b/g, 'CJ');
+    return /^justice\b/i.test(t) ? t : ('Justice ' + t);
+  }
+  function clSittingLabel(s){
+    s = String(s || '').trim(); if(!s) return '';
+    var m = s.match(/(\d{1,2})\s*[:.]\s*(\d{2})\s*([ap])\s*\.?\s*m/i);
+    if(m) return 'After ' + parseInt(m[1], 10) + ':' + m[2] + ' ' + m[3].toUpperCase() + 'M';
+    var m2 = s.match(/(\d{1,2})\s*([ap])\s*\.?\s*m/i);
+    if(m2) return 'After ' + parseInt(m2[1], 10) + ':00 ' + m2[2].toUpperCase() + 'M';
+    return s.replace(/[()]/g, '').replace(/\s+/g, ' ').trim();
+  }
+  function clIsSitting(b){ return !!(b && (b.sitting || /\(after\s/i.test(String(b.name || '')))); }
+  function clPayload(v){ var p = v && v.payload; if(typeof p === 'string'){ try{ p = JSON.parse(p); }catch(e){ p = null; } } return p || {}; }
+  function clCaseItem(r){
+    var nat = pdfGuessNature(String(r.relief || '') + ' ' + String(r.natText || ''));
+    return String(r.type || '') + String(r.no || '').trim() + '/' + String(r.year || '').trim() + (nat ? ' (' + nat + ')' : '');
+  }
+  /* "Crl.P.L.A.1104-L/2026" -> "crlpla|1104-l|2026" (spaces, dots and the nature code never matter) */
+  function clCaseKeys(caseStr){
+    var out = [], re = /([A-Za-z][A-Za-z.\-() ]*?)\s*(\d+(?:\s*-\s*[A-Za-z])?)\s*\/\s*(\d{4})/g, m;
+    String(caseStr || '').replace(/\([A-Z0-9]{2,6}\)/g, ' ').split('\n').forEach(function(line){
+      line = line.replace(/^\s*\d+[A-Za-z]?\.\s*/, '').replace(/^\s*(and|in)\s*(\(\d+\)\.)?\s*/i, '');
+      re.lastIndex = 0;
+      while((m = re.exec(line))){ out.push(m[1].toLowerCase().replace(/[^a-z]/g, '') + '|' + m[2].replace(/\s+/g, '').toLowerCase() + '|' + m[3]); }
+    });
+    return out;
+  }
+  function clDayJudgesHtml(b, i){
+    var d = b && b.days && b.days[i];
+    if(!d || !d.judges || !d.judges.length) return '';
+    return '<div class="day-judges" title="' + (isUrdu ? 'اس دن کے ججز' : "This day's judges") + '">⚖ ' + escapeHtml(d.judges.join(', ')) + '</div>';
+  }
+  /* judges for the info box of print / PDF / Word / Excel: one line when the judges are the same on every day with
+     cases, otherwise one line per day ("Tue 24-Nov-2026 — Justice ..., Justice ...") */
+  function benchJudgeInfo(b, r, dayList){
+    var oldNotes = (b.judgesNotes || []).filter(function(n){ return String(n).trim(); });
+    var per = [], sets = {};
+    (dayList || [0, 1, 2, 3, 4]).forEach(function(i){
+      var d = b.days && b.days[i];
+      var has = !!(d && d.cases && d.cases.some(function(c){ return String(c == null ? '' : c).trim(); }));
+      if(has && d.judges && d.judges.length){ per.push({i: i, j: d.judges}); sets[d.judges.join('|')] = 1; }
+    });
+    var base = (b.judgesList || []).join(', ');
+    if(!per.length) return {line: base, notes: oldNotes};
+    var keep = oldNotes.filter(function(n){ return !/^PDF:/.test(String(n)); });
+    if(Object.keys(sets).length === 1) return {line: per[0].j.join(', '), notes: keep};
+    return {line: 'Different judges on different days — see each day below',
+      notes: per.map(function(p){ return DAYS_EN[p.i].slice(0, 3) + ' ' + ((r && r.dates && r.dates[p.i]) || '') + ' — ' + p.j.join(', '); }).concat(keep)};
+  }
+  function clMsg(en, ur, bad){
+    var el = document.getElementById('clFromListMsg'); if(!el) return;
+    el.textContent = isUrdu ? ur : en; el.style.color = bad ? '#b3261e' : 'var(--muted)';
+  }
+  function clLoadLists(){
+    return db.collection('causeLists').get().then(function(qs){
+      CL_LISTS = qs.docs.map(function(d){ var v = d.data() || {}; return {id: d.id, name: v.name || v.fileName || d.id, from: v.dateFrom || '', to: v.dateTo || '', kind: v.kind || ''}; })
+        .sort(function(a, b){ return String(b.from).localeCompare(String(a.from)) || String(a.kind).localeCompare(String(b.kind)); });
+      clFillSelect(); return CL_LISTS;
+    }).catch(function(err){
+      clMsg('Could not read the saved cause lists: ' + err.message, 'محفوظ شدہ کاز لسٹیں نہیں پڑھی جا سکیں: ' + err.message, true);
+      throw err;
+    });
+  }
+  function clFillSelect(){
+    var sel = document.getElementById('clListSel'); if(!sel || !CL_LISTS) return;
+    var wk = (document.getElementById('weekStart') || {}).value || (currentRoster && currentRoster.weekStart) || '';
+    var keep = sel.value;
+    sel.innerHTML = CL_LISTS.length ? CL_LISTS.map(function(x){ return '<option value="' + escapeAttr(x.id) + '">' + escapeHtml(x.name) + '</option>'; }).join('')
+      : '<option value="">' + (isUrdu ? 'کوئی محفوظ کاز لسٹ نہیں (کاز لسٹ امپورٹ میں محفوظ کریں)' : 'No saved cause list (save one in Cause List Import)') + '</option>';
+    var match = wk && CL_LISTS.filter(function(x){ return clMonday(x.from) === wk; })[0];
+    if(match) sel.value = match.id; else if(keep && CL_LISTS.some(function(x){ return x.id === keep; })) sel.value = keep;
+  }
+  /* the expected roster for a saved cause list: only the rows ticked as ours; bench + sitting = one line */
+  function clModelFromPayload(p, weekStart){
+    var dts = weekDatesFrom(weekStart), isoDays = dts.map(clIsoOf), byKey = {}, order = [];
+    (p.rows || []).forEach(function(r){
+      if(r.mine === false || r.include === false) return;
+      var di = isoDays.indexOf(r.iso); if(di < 0) return;
+      var sit = clSittingLabel(r.sitting), key = String(r.bench || '?').trim() + (sit ? ' (' + sit + ')' : '');
+      if(!byKey[key]){
+        byKey[key] = {name: 'Bench - ' + key, sitting: sit, officers: {}, days: [0, 1, 2, 3, 4].map(function(){ return {groups: [], gmap: {}, judges: null}; })};
+        order.push(key);
+      }
+      var B = byKey[key], D = B.days[di];
+      if(!D.judges && r.judges && r.judges.length) D.judges = r.judges.map(clJudgeName);
+      var gk = String(r.sr || '').trim() || ('#' + D.groups.length);
+      if(!D.gmap[gk]){ D.gmap[gk] = {sr: String(r.sr || '').trim(), items: []}; D.groups.push(D.gmap[gk]); }
+      D.gmap[gk].items.push(clCaseItem(r));
+      if(r.officer) B.officers[r.officer] = (B.officers[r.officer] || 0) + 1;
+    });
+    order.sort(function(a, b){
+      var d = benchSortValue('Bench - ' + a) - benchSortValue('Bench - ' + b);
+      return d || ((byKey[a].sitting ? 1 : 0) - (byKey[b].sitting ? 1 : 0));
+    });
+    return {weekStart: weekStart, dates: dts.map(formatDate), benches: order.map(function(k){
+      var B = byKey[k];
+      B.days = B.days.map(function(D){
+        return {judges: D.judges || [], cases: D.groups.map(function(g){ return (g.sr ? g.sr + '. ' : '') + g.items[0] + g.items.slice(1).map(function(x){ return '\nand ' + x; }).join(''); })};
+      });
+      return B;
+    })};
+  }
+  function clGetList(id){
+    return db.collection('causeLists').doc(id).get().then(function(d){
+      if(!d.exists) throw new Error('not found');
+      var v = d.data() || {}, p = clPayload(v);
+      var first = v.dateFrom || ((p.rows || [])[0] || {}).iso || '';
+      return {v: v, p: p, weekStart: clMonday(first)};
+    });
+  }
+  function clBuildFromList(){
+    if(!rosterCan('e')){ rosterDenied(); return; }
+    var sel = document.getElementById('clListSel'), id = sel && sel.value;
+    if(!id){ clMsg('Please pick a saved cause list first.', 'پہلے محفوظ شدہ کاز لسٹ منتخب کریں۔', true); return; }
+    clMsg('Reading the saved cause list…', 'محفوظ شدہ کاز لسٹ پڑھی جا رہی ہے…');
+    clGetList(id).then(function(L){
+      var M = clModelFromPayload(L.p, L.weekStart);
+      var nCases = 0; M.benches.forEach(function(B){ B.days.forEach(function(D){ nCases += D.cases.length; }); });
+      if(!M.benches.length){ clMsg('This list has no case ticked as ours for this week.', 'اس لسٹ میں اس ہفتے کا ہمارا کوئی کیس منتخب نہیں۔', true); return; }
+      var sameWeek = currentRoster && currentRoster.weekStart === L.weekStart;
+      var hasCases = sameWeek && currentRoster.benches.some(function(b){ return benchHasCases(b, null); });
+      if(hasCases && !confirm(isUrdu ? 'اس ہفتے کا موجودہ روسٹر اس کاز لسٹ سے دوبارہ بنے گا (آفیسر برقرار رہیں گے)۔ جاری رکھیں؟' : "This week's roster on screen will be rebuilt from the cause list (officers are kept). Continue?")) return;
+      var prevOff = {};
+      if(sameWeek) currentRoster.benches.forEach(function(b){ if(b.officer) prevOff[b.name] = b.officer; });
+      var benches = M.benches.map(function(B, bi){
+        var master = BENCHES.filter(function(x){ return x.name === B.name; })[0];
+        var firstJ = (B.days.filter(function(d){ return d.judges.length; })[0] || {judges: []}).judges;
+        var top = Object.keys(B.officers).sort(function(a, b){ return B.officers[b] - B.officers[a]; })[0] || '';
+        var off = prevOff[B.name] || top || '';
+        if(off && OFFICERS.indexOf(off) === -1) OFFICERS.push(off);
+        return {id: master ? master.id : (9000 + bi), name: B.name, sitting: B.sitting || '', judgesList: firstJ.slice(), judgesNotes: [], officer: off,
+          days: B.days.map(function(D){ return {cases: D.cases.slice(), judges: D.judges.slice()}; })};
+      });
+      document.getElementById('weekStart').value = L.weekStart;
+      currentRoster = {weekStart: L.weekStart, dates: M.dates, benches: benches, source: 'Cause List: ' + (L.v.name || '')};
+      activeBenchIndex = benchDisplayOrder(benches)[0] || 0;
+      renderAll(currentRoster);
+      var sits = benches.filter(clIsSitting).length;
+      clMsg('Built from "' + (L.v.name || '') + '": ' + benches.length + ' bench lines' + (sits ? ' (' + sits + ' after-noon)' : '') + ', ' + nCases + ' cases. Pick officers where blank, then click 💾 Save.',
+        '"' + (L.v.name || '') + '" سے روسٹر بن گیا: ' + benches.length + ' بینچ لائنیں' + (sits ? ' (' + sits + ' بعد دوپہر)' : '') + '، ' + nCases + ' کیسز۔ جہاں آفیسر خالی ہو منتخب کریں، پھر 💾 محفوظ کریں۔');
+      var grid = document.getElementById('benchTabs'); if(grid) grid.scrollIntoView({behavior: 'smooth', block: 'start'});
+    }).catch(function(err){ clMsg('Could not read that cause list: ' + err.message, 'یہ کاز لسٹ نہیں پڑھی جا سکی: ' + err.message, true); });
+  }
+  /* compare the roster on screen with the saved cause list of the same week */
+  function clCheckRoster(){
+    if(!currentRoster){ alert(isUrdu ? 'پہلے ہفتہ بنائیں یا محفوظ روسٹر کھولیں' : 'Please build or open a week first'); return; }
+    var go = function(){
+      var cand = (CL_LISTS || []).filter(function(x){ return clMonday(x.from) === currentRoster.weekStart; });
+      var sel = document.getElementById('clListSel');
+      var pick = cand.filter(function(x){ return sel && x.id === sel.value; })[0] || cand.filter(function(x){ return /final/i.test(x.kind || x.name); })[0] || cand[0];
+      if(!pick){ clShowCheck(null, currentRoster.weekStart); return; }
+      clGetList(pick.id).then(function(L){ clShowCheck(clCompare(clModelFromPayload(L.p, currentRoster.weekStart), currentRoster), currentRoster.weekStart, L.v.name || pick.name); })
+        .catch(function(err){ alert((isUrdu ? 'کاز لسٹ نہیں پڑھی جا سکی: ' : 'Could not read the cause list: ') + err.message); });
+    };
+    if(CL_LISTS) go(); else clLoadLists().then(go).catch(function(){});
+  }
+  function clCompare(M, R){
+    var dayName = function(i){ return (isUrdu ? DAYS_UR[i] : DAYS_EN[i].slice(0, 3)) + ' ' + (R.dates[i] || ''); };
+    var setOf = function(arr){ return arr.map(clNormName).filter(Boolean).sort().join('|'); };
+    var nice = function(arr){ return arr.map(function(j){ return String(j).replace(/^Justice\s+/i, ''); }).join(' + ') || '—'; };
+    var norm = function(n){ return String(n || '').toLowerCase().replace(/\s+/g, ''); };
+    var rosterAt = {}, rosterWhere = {}, rows = [], ok = 0;
+    R.benches.forEach(function(b){
+      (b.days || []).forEach(function(d, i){
+        var keys = []; (d.cases || []).forEach(function(c){ keys = keys.concat(clCaseKeys(c)); });
+        rosterAt[norm(b.name) + '#' + i] = {b: b, d: d, keys: keys};
+        keys.forEach(function(k){ (rosterWhere[k] = rosterWhere[k] || []).push(b.name + ', ' + dayName(i)); });
+      });
+    });
+    var seen = {};
+    M.benches.forEach(function(B){
+      B.days.forEach(function(D, i){
+        if(!D.cases.length) return;
+        var at = rosterAt[norm(B.name) + '#' + i];
+        seen[norm(B.name) + '#' + i] = 1;
+        var want = []; D.cases.forEach(function(c){ want = want.concat(clCaseKeys(c)); });
+        var have = at ? at.keys : [];
+        var missing = want.filter(function(k){ return have.indexOf(k) < 0; });
+        var extra = have.filter(function(k){ return want.indexOf(k) < 0; });
+        var rj = at ? ((at.d.judges && at.d.judges.length) ? at.d.judges : (at.b.judgesList || [])) : [];
+        var jBad = at && D.judges.length && setOf(rj) !== setOf(D.judges);
+        var probs = [];
+        if(!at) probs.push(isUrdu ? 'یہ بینچ/دن روسٹر میں نہیں' : 'this bench / day is not in the roster');
+        if(jBad) probs.push((isUrdu ? 'ججز غلط — کاز لسٹ: ' : 'Judges wrong — cause list: ') + nice(D.judges) + (isUrdu ? ' | روسٹر: ' : ' | roster: ') + nice(rj));
+        missing.forEach(function(k){ var w = rosterWhere[k]; probs.push((isUrdu ? 'روسٹر میں نہیں: ' : 'Missing: ') + clKeyText(k) + (w ? (isUrdu ? ' (روسٹر میں یہاں ہے: ' : ' (roster has it under ') + w.join('; ') + ')' : '')); });
+        extra.forEach(function(k){ probs.push((isUrdu ? 'فالتو (کاز لسٹ میں یہاں نہیں): ' : 'Extra (not ours here in the cause list): ') + clKeyText(k)); });
+        if(probs.length) rows.push({where: B.name + ' — ' + dayName(i), probs: probs}); else ok++;
+      });
+    });
+    R.benches.forEach(function(b){
+      (b.days || []).forEach(function(d, i){
+        if(seen[norm(b.name) + '#' + i]) return;
+        var keys = []; (d.cases || []).forEach(function(c){ keys = keys.concat(clCaseKeys(c)); });
+        if(!keys.length) return;
+        rows.push({where: b.name + ' — ' + dayName(i), probs: [(isUrdu ? 'کاز لسٹ میں اس بینچ/دن ہمارا کوئی کیس نہیں، مگر روسٹر میں ہیں: ' : 'The cause list has none of our cases on this bench / day, but the roster has: ') + keys.map(clKeyText).join(', ')]});
+      });
+    });
+    return {ok: ok, rows: rows};
+  }
+  function clKeyText(k){ var p = String(k).split('|'); return p[0].toUpperCase().replace('CRLPLA', 'Crl.P.L.A. ').replace(/^JP$/, 'J.P. ').replace('CRLA', 'Crl.A. ').replace('CRLMA', 'Crl.M.A. ').replace('CRLRP', 'Crl.R.P. ') + p[1].toUpperCase() + '/' + p[2]; }
+  function clShowCheck(res, week, listName){
+    var old = document.getElementById('clCheckOverlay'); if(old) old.remove();
+    var o = document.createElement('div'); o.id = 'clCheckOverlay';
+    var h = '<div class="clc-card" dir="' + (isUrdu ? 'rtl' : 'ltr') + '"><button type="button" class="clc-x">' + (isUrdu ? 'بند کریں' : 'Close') + '</button>' +
+      '<h3>' + (isUrdu ? 'روسٹر کی جانچ — کاز لسٹ سے موازنہ' : 'Roster check — compared with the cause list') + '</h3>';
+    if(!res){
+      h += '<div class="clc-bad">' + (isUrdu ? 'اس ہفتے (' + week + ') کی کوئی محفوظ کاز لسٹ نہیں ملی۔ پہلے کاز لسٹ امپورٹ میں اس ہفتے کی لسٹ محفوظ کریں۔' : 'No saved cause list was found for this week (' + week + '). Save this week\'s list in Cause List Import first.') + '</div>';
+    } else {
+      h += '<div style="color:#6b7280;margin-bottom:8px">' + escapeHtml(listName || '') + '</div>';
+      if(!res.rows.length) h += '<div class="clc-ok">✔ ' + (isUrdu ? 'سب ٹھیک ہے — ' + res.ok + ' بینچ/دن، ججز اور کیسز کاز لسٹ کے مطابق ہیں۔' : 'All correct — ' + res.ok + ' bench-days; judges and cases match the cause list.') + '</div>';
+      else {
+        h += '<div class="clc-bad">✖ ' + (isUrdu ? res.rows.length + ' جگہ فرق ہے (' + res.ok + ' بینچ/دن ٹھیک)۔ پرنٹ سے پہلے ٹھیک کریں، یا "📋 اس لسٹ سے روسٹر بنائیں" سے دوبارہ بنائیں۔' : res.rows.length + ' place(s) differ (' + res.ok + ' bench-days correct). Fix them before printing, or rebuild with "📋 Build Roster from this List".') + '</div>' +
+          '<table><thead><tr><th>' + (isUrdu ? 'بینچ / دن' : 'Bench / day') + '</th><th>' + (isUrdu ? 'فرق' : 'Difference') + '</th></tr></thead><tbody>' +
+          res.rows.map(function(x){ return '<tr><td style="white-space:nowrap;font-weight:600">' + escapeHtml(x.where) + '</td><td>' + x.probs.map(escapeHtml).join('<br>') + '</td></tr>'; }).join('') +
+          '</tbody></table>';
+      }
+    }
+    o.innerHTML = h + '</div>';
+    o.addEventListener('click', function(e){ if(e.target === o || e.target.classList.contains('clc-x')) o.remove(); });
+    document.body.appendChild(o);
+  }
+  document.addEventListener('change', function(e){ if(e.target && e.target.id === 'weekStart' && typeof clFillSelect === 'function') clFillSelect(); });
+
   function renderPageHeading(){
     var box = document.getElementById('pageHeadingBox');
     var current = isUrdu ? headingUr : headingEn;
@@ -3995,9 +4268,8 @@ body[data-theme="night"] .userbar-ce .logout-btn:hover{ background:rgba(255,156,
       currentRoster.benches[jbi].judgesList = primary.judges.slice();
       groups.forEach(function(g){
         g.judges.forEach(function(n){ if(JUDGES.indexOf(n) === -1) JUDGES.push(n); });
-        if(g === primary) return;
-        var note = 'PDF: ' + pdfDayListLabel(g.weekdays) + ' — ' + g.judges.join(', ');
-        if(currentRoster.benches[jbi].judgesNotes.indexOf(note) === -1) currentRoster.benches[jbi].judgesNotes.push(note);
+        /* each day keeps its own judges (shown in the grid, print and downloads) */
+        g.weekdays.forEach(function(wd){ var gdi = WEEKDAY_ORDER5.indexOf(wd); if(gdi >= 0 && currentRoster.benches[jbi].days[gdi]) currentRoster.benches[jbi].days[gdi].judges = g.judges.slice(); });
       });
       syncBenchToMaster(jbi);
       judgesUpdated.push(BENCHES[jbi].name);
