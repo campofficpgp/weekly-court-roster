@@ -3367,8 +3367,11 @@ body[data-theme="night"] .userbar-ce .logout-btn:hover{ background:rgba(255,156,
     if(!per.length) return {line: base, notes: oldNotes};
     var keep = oldNotes.filter(function(n){ return !/^PDF:/.test(String(n)); });
     if(Object.keys(sets).length === 1) return {line: per[0].j.join(', '), notes: keep};
-    return {line: 'Different judges on different days — see each day below',
-      notes: per.map(function(p){ return DAYS_EN[p.i].slice(0, 3) + ' ' + ((r && r.dates && r.dates[p.i]) || '') + ' — ' + p.j.join(', '); }).concat(keep)};
+    /* days with the same judges share one line: "Mon, Tue, Wed, Thu — Justice ..., Justice ..." */
+    var groups = [], gi = {};
+    per.forEach(function(p){ var k = p.j.join('|'); if(!(k in gi)){ gi[k] = groups.length; groups.push({j: p.j, d: []}); } groups[gi[k]].d.push(p.i); });
+    return {line: 'Different judges on different days — see below',
+      notes: groups.map(function(g){ return g.d.map(function(i){ return DAYS_EN[i].slice(0, 3) + (g.d.length === 1 ? ' ' + ((r && r.dates && r.dates[i]) || '') : ''); }).join(', ') + ' — ' + g.j.join(', '); }).concat(keep)};
   }
   function clMsg(en, ur, bad){
     var el = document.getElementById('clFromListMsg'); if(!el) return;
