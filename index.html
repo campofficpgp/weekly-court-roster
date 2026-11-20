@@ -3702,7 +3702,11 @@ body[data-theme="night"] .userbar-ce .logout-btn:hover{ background:rgba(255,156,
       .map(function(x){ return '<button type="button" class="rv-b' + (RV_MODE === x[0] ? ' on' : '') + '" onclick="rvSetMode(\'' + x[0] + '\')">' + x[1] + '</button>'; }).join('') +
       (RV_MODE === 'judges' ? '<select onchange="rvSetJudge(this.value)" aria-label="Judge"><option value="">' + rvBi('تمام ججز', 'All judges') + '</option>' +
         judges.map(function(j){ return '<option value="' + escapeAttr(j) + '"' + (clNormName(j) === clNormName(RV_JUDGE) ? ' selected' : '') + '>' + escapeHtml(j) + '</option>'; }).join('') + '</select>' : '') +
-      (RV_MODE !== 'one' ? '<button type="button" class="rv-b" onclick="rvPrint()">🖨️ ' + rvBi('یہ منظر پرنٹ کریں', 'Print this view') + '</button>' : '');
+      (RV_MODE !== 'one' ? '<button type="button" class="rv-b" onclick="rvPrint()">🖨️ ' + rvBi('یہ منظر پرنٹ کریں', 'Print this view') + '</button>' +
+        '<button type="button" class="rv-b" onclick="rvDownload(\'pdf\')">📄 PDF</button>' +
+        '<button type="button" class="rv-b" onclick="rvDownload(\'docx\')">📝 Word</button>' +
+        '<button type="button" class="rv-b" onclick="rvDownload(\'xlsx\')">📊 Excel</button>' +
+        '<button type="button" class="rv-b" onclick="rvDownload(\'csv\')">CSV</button>' : '');
     var one = RV_MODE === 'one';
     ['benchTabs', 'benchLegendList'].forEach(function(id){ var el = document.getElementById(id); if(el) el.style.display = one ? '' : 'none'; });
     var ts = document.getElementById('rosterTable'); ts = ts && ts.closest('.table-scroll'); if(ts) ts.style.display = one ? '' : 'none';
@@ -3720,6 +3724,181 @@ body[data-theme="night"] .userbar-ce .logout-btn:hover{ background:rgba(255,156,
     var dd = f.contentWindow.document;
     dd.open(); dd.write('<!doctype html><html><head><meta charset="utf-8"><title>' + escapeHtml(title) + '</title><style>' + css + '</style></head><body><h1>WEEKLY COURT ROSTER — ' + escapeHtml(title) + '</h1>' + view.innerHTML + '</body></html>'); dd.close();
     setTimeout(function(){ try{ f.contentWindow.focus(); f.contentWindow.print(); }catch(e){} setTimeout(function(){ f.remove(); }, 2000); }, 300);
+  }
+
+  /* ---------- downloads of the shown view (All benches / By judges / one judge): PDF, Word, Excel, CSV ---------- */
+  function rvModel(){
+    var r = currentRoster; if(!r || RV_MODE === 'one') return null;
+    var dh = [0, 1, 2, 3, 4].map(function(i){ return DAYS_EN[i] + '\n' + (r.dates[i] || ''); });
+    var J = function(list){ return list.map(rvShort).join(', '); };
+    var m = {week: (r.dates[0] || '') + ' to ' + (r.dates[4] || ''), rows: []};
+    if(RV_MODE === 'all'){
+      m.title = 'All benches'; m.heads = ['Bench'].concat(dh); m.widths = [1.25, 1, 1, 1, 1, 1];
+      benchPrintOrder(r.benches, null).forEach(function(bi){
+        var b = r.benches[bi];
+        m.rows.push([b.name + '\nOfficer: ' + (b.officer || '-')].concat([0, 1, 2, 3, 4].map(function(i){
+          var d = b.days && b.days[i], cs = rvCases(d); if(!cs.length) return '-';
+          var js = rvDayJudges(b, d);
+          return (js.length ? 'Judges: ' + J(js) + '\n' : '') + cs.join('\n');
+        })));
+      });
+    } else if(RV_JUDGE){
+      var k = clNormName(RV_JUDGE);
+      m.title = 'By judge: ' + RV_JUDGE; m.heads = ['Day', 'Bench', 'Sitting with', 'Officer', 'Our cases']; m.widths = [0.8, 1, 1.5, 1.1, 2.4];
+      for(var i = 0; i < 5; i++){
+        var any = false;
+        benchDisplayOrder(r.benches).forEach(function(bi){
+          var b = r.benches[bi], d = b.days && b.days[i], cs = rvCases(d); if(!cs.length) return;
+          var js = rvDayJudges(b, d);
+          if(!js.some(function(j){ return clNormName(j) === k; })) return;
+          any = true;
+          m.rows.push([DAYS_EN[i] + '\n' + (r.dates[i] || ''), b.name, J(js.filter(function(j){ return clNormName(j) !== k; })) || '-', b.officer || '-', cs.join('\n')]);
+        });
+        if(!any) m.rows.push([DAYS_EN[i] + '\n' + (r.dates[i] || ''), '-', '-', '-', 'None of our cases']);
+      }
+    } else {
+      m.title = 'By judges - which bench each day'; m.heads = ['Judges'].concat(dh); m.widths = [1.25, 1, 1, 1, 1, 1];
+      var pmap = {}, panels = [];
+      benchDisplayOrder(r.benches).forEach(function(bi){
+        var b = r.benches[bi];
+        for(var i = 0; i < 5; i++){
+          var d = b.days && b.days[i], cs = rvCases(d); if(!cs.length) continue;
+          var js = rvDayJudges(b, d), key = js.join(', ') || 'Judges not entered';
+          var P = pmap[key]; if(!P){ P = pmap[key] = {name: J(js) || key, days: [[], [], [], [], []]}; panels.push(P); }
+          P.days[i].push(b.name + (b.officer ? ' (' + b.officer + ')' : '') + '\n' + cs.join('\n'));
+        }
+      });
+      panels.forEach(function(P){ m.rows.push([P.name].concat(P.days.map(function(x){ return x.length ? x.join('\n\n') : '-'; }))); });
+    }
+    m.fileBase = 'CampOffice-WeeklyRoster-' + String(r.weekStart || '').replace(/[^0-9-]/g, '') + '-' + m.title.replace(/[^A-Za-z0-9]+/g, '-').replace(/^-|-$/g, '');
+    return m;
+  }
+  function rvGuard(){
+    if(!rosterCan('x')){ rosterDenied(); return null; }
+    var m = rvModel(); if(!m || !m.rows.length){ alert(isUrdu ? 'پہلے روسٹر بنائیں' : 'Build the roster first'); return null; }
+    return m;
+  }
+  async function rvPdf(m){
+    var L = window.PDFLib, doc = await L.PDFDocument.create();
+    var F = await doc.embedFont(L.StandardFonts.Helvetica), FB = await doc.embedFont(L.StandardFonts.HelveticaBold);
+    var PW = 842, PH = 595, M = 26, TW = PW - 2 * M, page, y, navy = L.rgb(0.106, 0.247, 0.388), grey = L.rgb(0.4, 0.4, 0.4), lineC = L.rgb(0.79, 0.82, 0.86);
+    var tot = m.widths.reduce(function(a, b){ return a + b; }, 0), W = m.widths.map(function(w){ return TW * w / tot; });
+    var S = 7.6, LH = 9.4, PAD = 3;
+    function wrap(text, font, size, width){
+      var out = [];
+      pdfSafe(text).split('\n').forEach(function(par){
+        if(!par){ out.push(''); return; }
+        var words = par.split(' '), line = '';
+        words.forEach(function(w){
+          var t = line ? line + ' ' + w : w;
+          if(font.widthOfTextAtSize(t, size) <= width){ line = t; return; }
+          if(line) out.push(line);
+          while(font.widthOfTextAtSize(w, size) > width && w.length > 1){ var c = w.length; while(c > 1 && font.widthOfTextAtSize(w.slice(0, c), size) > width) c--; out.push(w.slice(0, c)); w = w.slice(c); }
+          line = w;
+        });
+        out.push(line);
+      });
+      return out;
+    }
+    function head(){
+      var x = M, hl = m.heads.map(function(h, i){ return wrap(h, FB, S, W[i] - 2 * PAD); });
+      var h = Math.max.apply(null, hl.map(function(l){ return l.length; })) * LH + 2 * PAD;
+      m.heads.forEach(function(t, i){
+        page.drawRectangle({x: x, y: y - h, width: W[i], height: h, color: navy});
+        hl[i].forEach(function(l, li){ page.drawText(l, {x: x + PAD, y: y - PAD - (li + 1) * LH + 2, size: S, font: FB, color: L.rgb(1, 1, 1)}); });
+        x += W[i];
+      });
+      y -= h;
+    }
+    function newPage(first){
+      page = doc.addPage([PW, PH]); y = PH - M;
+      if(first){
+        page.drawText('WEEKLY COURT ROSTER - ' + pdfSafe(m.title).toUpperCase(), {x: M, y: y - 12, size: 13, font: FB, color: navy});
+        page.drawText('Week: ' + pdfSafe(m.week), {x: M, y: y - 27, size: 9, font: F, color: grey}); y -= 38;
+      } else { page.drawText(pdfSafe(m.title) + ' (continued)', {x: M, y: y - 9, size: 8, font: F, color: grey}); y -= 16; }
+      head();
+    }
+    newPage(true);
+    m.rows.forEach(function(row, ri){
+      var cl = row.map(function(t, i){ return wrap(t, i === 0 ? FB : F, S, W[i] - 2 * PAD); });
+      var maxL = Math.floor((PH - 2 * M - 70) / LH);
+      cl = cl.map(function(l){ return l.length > maxL ? l.slice(0, maxL - 1).concat(['... (more in Word / Excel)']) : l; });
+      var h = Math.max.apply(null, cl.map(function(l){ return l.length; })) * LH + 2 * PAD;
+      if(y - h < M + 16) newPage(false);
+      var x = M;
+      row.forEach(function(t, i){
+        page.drawRectangle({x: x, y: y - h, width: W[i], height: h, color: ri % 2 ? L.rgb(0.965, 0.972, 0.98) : L.rgb(1, 1, 1), borderColor: lineC, borderWidth: 0.6});
+        cl[i].forEach(function(l, li){ page.drawText(l, {x: x + PAD, y: y - PAD - (li + 1) * LH + 2, size: S, font: i === 0 ? FB : F, color: L.rgb(0.07, 0.07, 0.07)}); });
+        x += W[i];
+      });
+      y -= h;
+    });
+    var pages = doc.getPages(), n = new Date(), gd = n.getDate() + ' ' + MONTHS_EN_R[n.getMonth()] + ' ' + n.getFullYear();
+    pages.forEach(function(p, i){ var s = 'Generated ' + gd + '   |   Page ' + (i + 1) + ' of ' + pages.length; p.drawText(s, {x: PW - M - F.widthOfTextAtSize(s, 7), y: 12, size: 7, font: F, color: grey}); });
+    doc.setTitle('Weekly Court Roster - ' + pdfSafe(m.title));
+    return new Blob([await doc.save()], {type: 'application/pdf'});
+  }
+  async function rvDocx(m){
+    var D = window.docx, tot = m.widths.reduce(function(a, b){ return a + b; }, 0), TW = 15600;
+    var W = m.widths.map(function(w){ return Math.round(TW * w / tot); });
+    function paras(t, o){ return String(t).split('\n').map(function(l){ return new D.Paragraph({spacing: {after: 0}, children: [new D.TextRun({text: l, font: 'Arial', size: 16, bold: !!(o && o.bold), color: (o && o.color) || '111111'})]}); }); }
+    var rows = [new D.TableRow({tableHeader: true, children: m.heads.map(function(h, i){ return new D.TableCell({width: {size: W[i], type: D.WidthType.DXA}, shading: {fill: '1B3F63', type: D.ShadingType.CLEAR, color: 'auto'}, children: paras(h, {bold: true, color: 'FFFFFF'})}); })})];
+    m.rows.forEach(function(row, ri){
+      rows.push(new D.TableRow({cantSplit: false, children: row.map(function(t, i){ return new D.TableCell({width: {size: W[i], type: D.WidthType.DXA}, shading: ri % 2 ? {fill: 'F5F7FA', type: D.ShadingType.CLEAR, color: 'auto'} : undefined, children: paras(t, {bold: i === 0})}); })}));
+    });
+    var doc = new D.Document({creator: '', title: 'Weekly Court Roster - ' + m.title, sections: [{
+      properties: {page: {size: {width: 11906, height: 16838, orientation: D.PageOrientation.LANDSCAPE}, margin: {top: 567, bottom: 567, left: 567, right: 567}}},
+      children: [new D.Paragraph({spacing: {after: 60}, children: [new D.TextRun({text: 'WEEKLY COURT ROSTER - ' + m.title.toUpperCase(), font: 'Arial', size: 26, bold: true, color: '1B3F63'})]}),
+        new D.Paragraph({spacing: {after: 140}, children: [new D.TextRun({text: 'Week: ' + m.week, font: 'Arial', size: 18, color: '666666'})]}),
+        new D.Table({width: {size: TW, type: D.WidthType.DXA}, columnWidths: W, rows: rows})]}]});
+    return await D.Packer.toBlob(doc);
+  }
+  async function rvXlsx(m){
+    var Z = new JSZip(), NS = 'xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"', R = 'http://schemas.openxmlformats.org/officeDocument/2006/relationships';
+    var tot = m.widths.reduce(function(a, b){ return a + b; }, 0), cw = m.widths.map(function(w){ return Math.round(140 * w / tot); });
+    function cell(ref, t, s){ return '<c r="' + ref + '" s="' + s + '" t="inlineStr"><is><t xml:space="preserve">' + xmlEsc(t) + '</t></is></c>'; }
+    var rowsX = '<row r="1" ht="22" customHeight="1">' + cell('A1', 'WEEKLY COURT ROSTER - ' + m.title.toUpperCase() + '   (Week: ' + m.week + ')', 3) + '</row>';
+    rowsX += '<row r="2" ht="30" customHeight="1">' + m.heads.map(function(h, i){ return cell(colLetter(i) + '2', h, 1); }).join('') + '</row>';
+    m.rows.forEach(function(row, ri){
+      var rn = ri + 3, lines = 1;
+      row.forEach(function(t, i){ var n = 0; String(t).split('\n').forEach(function(l){ n += Math.max(1, Math.ceil(l.length / Math.max(8, cw[i] * 1.05))); }); lines = Math.max(lines, n); });
+      rowsX += '<row r="' + rn + '" ht="' + Math.min(409, lines * 12.5 + 4) + '" customHeight="1">' + row.map(function(t, i){ return cell(colLetter(i) + rn, t, i === 0 ? 4 : 2); }).join('') + '</row>';
+    });
+    var last = colLetter(m.heads.length - 1);
+    var sheet = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet ' + NS + ' xmlns:r="' + R + '"><sheetViews><sheetView workbookViewId="0"><pane ySplit="2" topLeftCell="A3" activePane="bottomLeft" state="frozen"/></sheetView></sheetViews><cols>' +
+      cw.map(function(w, i){ return '<col min="' + (i + 1) + '" max="' + (i + 1) + '" width="' + w + '" customWidth="1"/>'; }).join('') + '</cols><sheetData>' + rowsX + '</sheetData><mergeCells count="1"><mergeCell ref="A1:' + last + '1"/></mergeCells>' +
+      '<pageMargins left="0.4" right="0.4" top="0.5" bottom="0.5" header="0.3" footer="0.3"/><pageSetup paperSize="9" orientation="landscape" fitToWidth="1" fitToHeight="0"/><headerFooter><oddFooter>&amp;CPage &amp;P of &amp;N</oddFooter></headerFooter></worksheet>';
+    var bd = '<border><left style="thin"><color rgb="FFC9D1DA"/></left><right style="thin"><color rgb="FFC9D1DA"/></right><top style="thin"><color rgb="FFC9D1DA"/></top><bottom style="thin"><color rgb="FFC9D1DA"/></bottom><diagonal/></border>';
+    var styles = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><styleSheet ' + NS + '><fonts count="4"><font><sz val="10"/><name val="Arial"/></font><font><b/><sz val="10"/><color rgb="FFFFFFFF"/><name val="Arial"/></font><font><b/><sz val="13"/><color rgb="FF1B3F63"/><name val="Arial"/></font><font><b/><sz val="10"/><name val="Arial"/></font></fonts>' +
+      '<fills count="3"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill><fill><patternFill patternType="solid"><fgColor rgb="FF1B3F63"/><bgColor indexed="64"/></patternFill></fill></fills>' +
+      '<borders count="2"><border><left/><right/><top/><bottom/><diagonal/></border>' + bd + '</borders><cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>' +
+      '<cellXfs count="5"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/>' +
+      '<xf numFmtId="0" fontId="1" fillId="2" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center" wrapText="1"/></xf>' +
+      '<xf numFmtId="0" fontId="0" fillId="0" borderId="1" xfId="0" applyBorder="1" applyAlignment="1"><alignment vertical="top" wrapText="1"/></xf>' +
+      '<xf numFmtId="0" fontId="2" fillId="0" borderId="0" xfId="0" applyFont="1"/>' +
+      '<xf numFmtId="0" fontId="3" fillId="0" borderId="1" xfId="0" applyFont="1" applyBorder="1" applyAlignment="1"><alignment vertical="top" wrapText="1"/></xf></cellXfs></styleSheet>';
+    Z.file('[Content_Types].xml', '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/></Types>');
+    Z.file('_rels/.rels', '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="' + R + '/officeDocument" Target="xl/workbook.xml"/></Relationships>');
+    Z.file('xl/workbook.xml', '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><workbook ' + NS + ' xmlns:r="' + R + '"><sheets><sheet name="Roster" sheetId="1" r:id="rId1"/></sheets><definedNames><definedName name="_xlnm.Print_Titles" localSheetId="0">Roster!$2:$2</definedName></definedNames></workbook>');
+    Z.file('xl/_rels/workbook.xml.rels', '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="' + R + '/worksheet" Target="worksheets/sheet1.xml"/><Relationship Id="rId2" Type="' + R + '/styles" Target="styles.xml"/></Relationships>');
+    Z.file('xl/styles.xml', styles); Z.file('xl/worksheets/sheet1.xml', sheet);
+    return await Z.generateAsync({type: 'blob', mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+  }
+  function rvCsv(m){
+    var q = function(v){ return '"' + String(v == null ? '' : v).replace(/"/g, '""') + '"'; };
+    var lines = [m.heads.map(function(h){ return q(h.replace(/\n/g, ' ')); }).join(',')].concat(m.rows.map(function(r){ return r.map(q).join(','); }));
+    return new Blob(['﻿' + lines.join('\r\n')], {type: 'text/csv;charset=utf-8'});
+  }
+  async function rvDownload(kind){
+    var m = rvGuard(); if(!m) return;
+    try{
+      var blob;
+      if(kind === 'pdf'){ await rLoadLib('pdflib'); blob = await rvPdf(m); }
+      else if(kind === 'docx'){ await rLoadLib('docx'); blob = await rvDocx(m); }
+      else if(kind === 'xlsx'){ await rLoadLib('jszip'); blob = await rvXlsx(m); }
+      else blob = rvCsv(m);
+      rosterDownloadBlob(blob, m.fileBase + '.' + kind);
+    }catch(err){ console.error(err); alert((isUrdu ? 'فائل نہیں بن سکی: ' : 'Could not build the file: ') + (err && err.message ? err.message : err)); }
   }
 
   function renderPageHeading(){
