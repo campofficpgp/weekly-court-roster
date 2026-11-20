@@ -2818,6 +2818,22 @@ body[data-theme="night"] .userbar-ce .logout-btn:hover{ background:rgba(255,156,
       return ((a.name === WK_NA) - (b.name === WK_NA)) || (b.n - a.n) || a.name.localeCompare(b.name);
     });
     var busy = -1; dayTot.forEach(function(n, i){ if(n > 0 && (busy < 0 || n > dayTot[busy])) busy = i; });
+    /* by judges: the same judges sit on a different bench number on different days -- one line per judges panel,
+       each day shows the bench they sit on and how many of our cases ("Bench IV · 6") */
+    var pmap = {}, panels = [];
+    benchDisplayOrder(r.benches).forEach(function(bi){
+      var b = r.benches[bi], short = String(b.name || '').replace(/^\s*bench\s*[-–—]?\s*/i, '').replace(/\(\s*after\s+/i, '(').trim() || String(bi + 1);
+      for(var d = 0; d < 5; d++){
+        var dd = b.days && b.days[d];
+        var cnt = ((dd && dd.cases) || []).filter(function(c){ return String(c == null ? '' : c).trim(); }).length;
+        if(!cnt) continue;
+        var js = ((dd.judges && dd.judges.length) ? dd.judges : (b.judgesList || [])).map(function(j){ return String(j == null ? '' : j).trim(); }).filter(Boolean);
+        var key = js.join(', ') || 'Judges not entered';
+        var P = pmap[key]; if(!P){ P = pmap[key] = {name:key, cells:[[], [], [], [], []], counts:[0, 0, 0, 0, 0], n:0, benches:[]}; panels.push(P); }
+        P.cells[d].push('Bench ' + short + ' · ' + cnt); P.counts[d] += cnt; P.n += cnt;
+        if(P.benches.indexOf(short) < 0) P.benches.push(short);
+      }
+    });
     var details = [];
     rows.forEach(function(rw){
       for(var d = 0; d < 5; d++){
@@ -2826,7 +2842,7 @@ body[data-theme="night"] .userbar-ce .logout-btn:hover{ background:rgba(255,156,
     });
     var wk = String(r.weekStart || 'Roster').replace(/[^A-Za-z0-9]+/g, '-');
     return {
-      dates:dates, rows:rows, empty:empty, offs:olist, dayTot:dayTot, total:total, busy:busy, details:details,
+      dates:dates, rows:rows, empty:empty, offs:olist, panels:panels, dayTot:dayTot, total:total, busy:busy, details:details,
       range:dates[0] + ' to ' + dates[4], fileBase:'CampOffice-WeeklyRoster-Summary-' + wk,
       stats:{cases:total, benches:rows.length, emptyN:empty.length, days:dayTot.filter(function(n){ return n > 0; }).length,
              noOff:rows.filter(function(x){ return x.officer === WK_NA; }).length}
@@ -2869,6 +2885,13 @@ body[data-theme="night"] .userbar-ce .logout-btn:hover{ background:rgba(255,156,
     m.offs.forEach(function(f){
       h += '<tr' + (f.name === WK_NA ? ' class="na"' : '') + '><td class="l"><b>' + (f.name === WK_NA ? wkBi('آفیسر مقرر نہیں', 'Not assigned') : escapeHtml(f.name)) + '</b></td><td class="l">' + escapeHtml(f.benches.join(isUrdu ? '، ' : ', ')) + '</td>' +
         f.counts.map(function(n){ return '<td' + (n ? '' : ' class="zero"') + '>' + (n || '—') + '</td>'; }).join('') + '<td><b>' + f.n + '</b></td></tr>';
+    });
+    h += '</tbody></table></div>';
+    h += '<div class="wk-sub">' + wkBi('ججز کے حساب سے — ہر دن کون سا بینچ', 'By judges — which bench each day') + '</div>' +
+      '<div class="wk-scroll"><table class="wk-t"><thead><tr>' + heads(wkBi('ججز', 'Judges'), '<th class="l">' + wkBi('بینچ', 'Benches') + '</th>') + '</tr></thead><tbody>';
+    (m.panels || []).forEach(function(P){
+      h += '<tr><td class="l"><b>' + escapeHtml(P.name) + '</b></td><td class="l">' + escapeHtml(P.benches.join(isUrdu ? '، ' : ', ')) + '</td>' +
+        P.cells.map(function(c){ return '<td' + (c.length ? '' : ' class="zero"') + '>' + (c.length ? escapeHtml(c.join('; ')) : '—') + '</td>'; }).join('') + '<td><b>' + P.n + '</b></td></tr>';
     });
     box.innerHTML = h + '</tbody></table></div>';
   }
@@ -2931,6 +2954,12 @@ body[data-theme="night"] .userbar-ce .logout-btn:hover{ background:rgba(255,156,
     m.offs.forEach(function(f){
       h += '<tr' + (f.name === WK_NA ? ' class="na"' : '') + '><td class="l"><b>' + X(f.name) + '</b></td><td class="l">' + X(f.benches.join(', ')) + '</td>' +
         f.counts.map(function(n){ return '<td' + (n ? '' : ' class="z"') + '>' + (n || '-') + '</td>'; }).join('') + '<td><b>' + f.n + '</b></td></tr>';
+    });
+    h += '</tbody></table>';
+    h += '<div class="ban">BY JUDGES — WHICH BENCH EACH DAY</div><table><thead><tr>' + th('Judges', 'c1') + th('Benches', 'c2') + dh() + '</tr></thead><tbody>';
+    (m.panels || []).forEach(function(P){
+      h += '<tr><td class="l"><b>' + X(P.name) + '</b></td><td class="l">' + X(P.benches.join(', ')) + '</td>' +
+        P.cells.map(function(c){ return '<td' + (c.length ? '' : ' class="z"') + '>' + (c.length ? X(c.join('; ')) : '-') + '</td>'; }).join('') + '<td><b>' + P.n + '</b></td></tr>';
     });
     h += '</tbody></table><div class="ft">Generated ' + X(wkGenDate()) + '</div></body></html>';
     var f = document.createElement('iframe');
@@ -3079,6 +3108,14 @@ body[data-theme="night"] .userbar-ce .logout-btn:hover{ background:rgba(255,156,
       return {fill:f.name === WK_NA ? warnFill : null, cells:[[{t:f.name, s:8.8, b:true}], [{t:f.benches.join(', '), s:7.4}]].concat(f.counts.map(function(n){ return [{t:n ? String(n) : '-', s:9, c:n ? black : grey}]; })).concat([[{t:String(f.n), s:9.5, b:true}]])};
     });
     drawTable(['Officer', 'Benches'].concat(dayHeads).concat(['Total']), W2, orows, [0, 1]);
+    if(m.panels && m.panels.length){
+      y -= 10;
+      banner('BY JUDGES - WHICH BENCH EACH DAY');
+      var prows = m.panels.map(function(P){
+        return {cells:[[{t:P.name, s:8, b:true}], [{t:P.benches.join(', '), s:7.6}]].concat(P.cells.map(function(c){ return [{t:c.length ? c.join('; ') : '-', s:7.8, c:c.length ? black : grey}]; })).concat([[{t:String(P.n), s:9.5, b:true}]])};
+      });
+      drawTable(['Judges', 'Benches'].concat(dayHeads).concat(['Total']), W2, prows, [0, 1]);
+    }
     var pages = doc.getPages(), gd = wkGenDate();
     pages.forEach(function(p, i){
       p.drawLine({start:{x:M, y:26}, end:{x:PW - M, y:26}, thickness:.6, color:line});
@@ -3164,6 +3201,16 @@ body[data-theme="night"] .userbar-ce .logout-btn:hover{ background:rgba(255,156,
         f.counts.map(function(n, i){ return n ? cn(colLetter(2 + i) + r, n, S.cellC) : c(colLetter(2 + i) + r, '', S.cellC); }).join('') + cn(last2 + r, f.n, S.totC) + '</row>';
     });
     r++; rows += '<row r="' + r + '" ht="19" customHeight="1">' + c('A' + r, 'Total', S.totL) + c('B' + r, '', S.totL) + m.dayTot.map(function(n, i){ return cn(colLetter(2 + i) + r, n, S.totC); }).join('') + cn(last2 + r, m.total, S.totC) + '</row>';
+    if(m.panels && m.panels.length){
+      r += 2;
+      rows += '<row r="' + r + '" ht="30" customHeight="1">' + ['Benches (by judges)', 'Judges'].map(function(h, i){ return c(colLetter(i) + r, h, S.headL); }).join('') +
+        dayHeadTxt.map(function(h, i){ return c(colLetter(2 + i) + r, h, S.head); }).join('') + c(last2 + r, 'Total', S.head) + '</row>';
+      m.panels.forEach(function(P){
+        r++;
+        rows += '<row r="' + r + '" ht="' + Math.max(18, lines(P.name, w2[1]) * 13 + 5) + '" customHeight="1">' + c('A' + r, P.benches.join(', '), S.cell) + c('B' + r, P.name, S.cell) +
+          P.cells.map(function(cc, i){ return c(colLetter(2 + i) + r, cc.join('; '), S.cellC); }).join('') + cn(last2 + r, P.n, S.totC) + '</row>';
+      });
+    }
     var sheet2 = ws(w2, rows, ['A1:' + last2 + '1', 'A2:' + last2 + '2'], {noGrid:true, freeze:3});
     /* sheet 3: one line per bench per day (sort / filter) */
     var dh = ['Date', 'Day', 'Bench', 'Judges', 'Officer', 'Cases', 'Case numbers'], dwid = [13, 11, 22, 40, 18, 9, 70];
@@ -3252,6 +3299,13 @@ body[data-theme="night"] .userbar-ce .logout-btn:hover{ background:rgba(255,156,
     children.push(para([run('')], {after:120}));
     children.push(banner('By officer', 60));
     children.push(table(['Officer', 'Benches'].concat(dayHeads).concat(['Total']), orows, [0, 1]));
+    if(m.panels && m.panels.length){
+      children.push(para([run('')], {after:120}));
+      children.push(banner('By judges — which bench each day', 60));
+      children.push(table(['Judges', 'Benches'].concat(dayHeads).concat(['Total']), m.panels.map(function(P){
+        return {cells:[[para([run(P.name, {bold:true, size:16})])], [para([run(P.benches.join(', '), {size:16})])]].concat(P.cells.map(function(c){ return ctr(c.length ? c.join('; ') : '—', {color:c.length ? '111111' : '888888', size:16}); })).concat([ctr(String(P.n), {bold:true})])};
+      }), [0, 1]));
+    }
     var doc = new D.Document({creator:'', title:'Weekly Court Roster — Week Summary', sections:[{
       properties:{page:{size:{width:11906, height:16838, orientation:D.PageOrientation.LANDSCAPE}, margin:{top:567, bottom:680, left:567, right:567, footer:300}}},
       footers:{default:new D.Footer({children:[new D.Paragraph({alignment:AL.CENTER, children:[new D.TextRun({children:['Generated ' + wkGenDate() + '   ·   Page ', D.PageNumber.CURRENT, ' of ', D.PageNumber.TOTAL_PAGES], font:FONT, size:15, color:'777777'})]})]})},
@@ -3351,7 +3405,7 @@ body[data-theme="night"] .userbar-ce .logout-btn:hover{ background:rgba(255,156,
   function clDayJudgesHtml(b, i){
     var d = b && b.days && b.days[i];
     if(!d || !d.judges || !d.judges.length) return '';
-    return '<div class="day-judges" title="' + (isUrdu ? 'اس دن کے ججز' : "This day's judges") + '">⚖ ' + escapeHtml(d.judges.join(', ')) + '</div>';
+    return '<div class="day-judges" title="' + (isUrdu ? 'اس دن کا بینچ اور ججز' : "This day's bench and judges") + '">⚖ <b>' + escapeHtml(b.name || '') + '</b> — ' + escapeHtml(d.judges.join(', ')) + '</div>';
   }
   /* judges for the info box of print / PDF / Word / Excel: one line when the judges are the same on every day with
      cases, otherwise one line per day ("Tue 24-Nov-2026 — Justice ..., Justice ...") */
