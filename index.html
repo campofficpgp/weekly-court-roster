@@ -3498,7 +3498,7 @@ body[data-theme="night"] .userbar-ce .logout-btn:hover{ background:rgba(255,156,
     clMsg('Reading the saved cause list…', 'محفوظ شدہ کاز لسٹ پڑھی جا رہی ہے…');
     clGetList(id).then(function(L){
       var M = clModelFromPayload(L.p, L.weekStart);
-      var nCases = 0; M.benches.forEach(function(B){ B.days.forEach(function(D){ nCases += D.cases.length; }); });
+      var nCases = 0, nNums = 0; M.benches.forEach(function(B){ B.days.forEach(function(D){ nCases += D.cases.length; D.cases.forEach(function(c){ nNums += clCaseKeys(c).length; }); }); });
       if(!M.benches.length){ clMsg('This list has no case ticked as ours for this week.', 'اس لسٹ میں اس ہفتے کا ہمارا کوئی کیس منتخب نہیں۔', true); return; }
       var sameWeek = currentRoster && currentRoster.weekStart === L.weekStart;
       var hasCases = sameWeek && currentRoster.benches.some(function(b){ return benchHasCases(b, null); });
@@ -3519,8 +3519,8 @@ body[data-theme="night"] .userbar-ce .logout-btn:hover{ background:rgba(255,156,
       activeBenchIndex = benchDisplayOrder(benches)[0] || 0;
       renderAll(currentRoster);
       var sits = benches.filter(clIsSitting).length;
-      clMsg('Built from "' + (L.v.name || '') + '": ' + benches.length + ' bench lines' + (sits ? ' (' + sits + ' after-noon)' : '') + ', ' + nCases + ' cases. Pick officers where blank, then click 💾 Save.',
-        '"' + (L.v.name || '') + '" سے روسٹر بن گیا: ' + benches.length + ' بینچ لائنیں' + (sits ? ' (' + sits + ' بعد دوپہر)' : '') + '، ' + nCases + ' کیسز۔ جہاں آفیسر خالی ہو منتخب کریں، پھر 💾 محفوظ کریں۔');
+      clMsg('Built from "' + (L.v.name || '') + '": ' + benches.length + ' bench lines' + (sits ? ' (' + sits + ' after-noon)' : '') + ', ' + nCases + ' entries (Sr. Nos.) = ' + nNums + ' case numbers (connected cases share one entry). Pick officers where blank, then click 💾 Save.',
+        '"' + (L.v.name || '') + '" سے روسٹر بن گیا: ' + benches.length + ' بینچ لائنیں' + (sits ? ' (' + sits + ' بعد دوپہر)' : '') + '، ' + nCases + ' اندراج (سیریل نمبر) = ' + nNums + ' کیس نمبر (جڑے ہوئے کیس ایک ہی اندراج میں)۔ جہاں آفیسر خالی ہو منتخب کریں، پھر 💾 محفوظ کریں۔');
       var grid = document.getElementById('benchTabs'); if(grid) grid.scrollIntoView({behavior: 'smooth', block: 'start'});
     }).catch(function(err){ clMsg('Could not read that cause list: ' + err.message, 'یہ کاز لسٹ نہیں پڑھی جا سکی: ' + err.message, true); });
   }
