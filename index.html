@@ -2235,7 +2235,7 @@ body[data-theme="night"] .userbar-ce .logout-btn:hover{ background:rgba(255,156,
 
   /* ---------------- PDF (pdf-lib, real vector text) ---------------- */
   function pdfLatin(sx){ return /^[\x20-\x7E -ÿ–—‘’“”•]*$/.test(sx); }
-  function pdfSafe(sx){ return String(sx == null ? '' : sx).replace(/[^\x20-\x7E -ÿ–—‘’“”•]/g, '?'); }
+  function pdfSafe(sx){ return String(sx == null ? '' : sx).replace(/[\t\r\n]+/g, ' ').replace(/[^\x20-\x7E -ÿ–—‘’“”•]/g, '?'); }
   function rasterFontStr(px, bold, sc){ return (bold ? 'bold ' : '') + (px * sc) + 'px "Noto Nastaliq Urdu","Jameel Noori Nastaleeq","Segoe UI",Arial,sans-serif'; }
   function rasterText(text, px, bold, color){
     var sc = 3, cv = document.createElement('canvas'), cx = cv.getContext('2d');
@@ -3744,7 +3744,7 @@ body[data-theme="night"] .userbar-ce .logout-btn:hover{ background:rgba(255,156,
       });
     } else if(RV_JUDGE){
       var k = clNormName(RV_JUDGE);
-      m.title = 'By judge: ' + RV_JUDGE; m.heads = ['Day', 'Bench', 'Sitting with', 'Officer', 'Our cases']; m.widths = [0.8, 1, 1.5, 1.1, 2.4];
+      m.title = 'By judge: ' + RV_JUDGE; m.heads = ['Day', 'Bench', 'Sitting with', 'Officer', 'Our cases']; m.widths = [0.95, 0.9, 1.45, 1, 2.5];
       for(var i = 0; i < 5; i++){
         var any = false;
         benchDisplayOrder(r.benches).forEach(function(bi){
@@ -3786,7 +3786,8 @@ body[data-theme="night"] .userbar-ce .logout-btn:hover{ background:rgba(255,156,
     var S = 7.6, LH = 9.4, PAD = 3;
     function wrap(text, font, size, width){
       var out = [];
-      pdfSafe(text).split('\n').forEach(function(par){
+      String(text == null ? '' : text).split('\n').forEach(function(par){
+        par = pdfSafe(par);
         if(!par){ out.push(''); return; }
         var words = par.split(' '), line = '';
         words.forEach(function(w){
