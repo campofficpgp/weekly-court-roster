@@ -783,6 +783,7 @@ body[data-theme="night"] .userbar-ce .logout-btn:hover{ background:rgba(255,156,
           <span class="manage-link" onclick="openListManage('judges')" data-en="(+ Add/Edit Judges)" data-ur="(+ ججز شامل/ترمیم)">(+ Add/Edit Judges)</span>
         </div>
       </div>
+      <div id="rvBar"></div>
       <div id="benchTabs" class="bench-tabs"></div>
       <div id="benchLegendList"></div>
     </div>
@@ -795,6 +796,7 @@ body[data-theme="night"] .userbar-ce .logout-btn:hover{ background:rgba(255,156,
           <span class="manage-link" onclick="openListManage('nature')" data-en="(+ Nature Codes)" data-ur="(+ کیس کی نوعیت کوڈز)">(+ Nature Codes)</span>
         </div>
       </div>
+      <div id="rvView" style="display:none"></div>
       <div class="table-scroll">
         <table class="roster-table" id="rosterTable"></table>
       </div>
@@ -1347,6 +1349,7 @@ body[data-theme="night"] .userbar-ce .logout-btn:hover{ background:rgba(255,156,
     renderBenchTabs(r);
     renderBenchLegend(r);
     renderRosterTable(r);
+    if(typeof rvRender === 'function') rvRender();
   }
 
   // Benches are stored/edited in whatever order they were added -- the office's old tracked
@@ -3600,6 +3603,124 @@ body[data-theme="night"] .userbar-ce .logout-btn:hover{ background:rgba(255,156,
     document.body.appendChild(o);
   }
   document.addEventListener('change', function(e){ if(e.target && e.target.id === 'weekStart' && typeof clFillSelect === 'function') clFillSelect(); });
+
+  /* ================= Roster views: One bench (edit) | All benches | By judges (+ one judge) — Nov 2026 =================
+     Read-only views of the roster on screen (nothing is changed or saved). "One bench" is the old editing grid. */
+  var RV_MODE = 'one', RV_JUDGE = '';
+  (function(){
+    var st = document.createElement('style');
+    st.textContent = '#rvBar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:0 0 12px}' +
+      '#rvBar .rv-b{border:1px solid var(--border,#dfe5ec);background:#f7f9fb;color:#334155;border-radius:999px;padding:6px 14px;font:600 13px/1.3 inherit;cursor:pointer}' +
+      '#rvBar .rv-b.on{background:var(--navy,#1B3F63);border-color:var(--navy,#1B3F63);color:#fff}' +
+      '#rvBar select{padding:7px 10px;border-radius:8px;border:1px solid var(--border,#dfe5ec);font:inherit;font-size:13px;max-width:100%}' +
+      '#rvView{overflow-x:auto}#rvView table{width:100%;border-collapse:collapse;min-width:760px}' +
+      '#rvView th,#rvView td{border:1px solid #e3e8ee;padding:7px 8px;vertical-align:top;font-size:12.5px;text-align:start}' +
+      '#rvView thead th{background:var(--navy,#1B3F63);color:#fff;font-weight:700;text-align:center}' +
+      '#rvView .rv-bn{font-weight:700;color:var(--navy,#1B3F63);white-space:nowrap}#rvView .rv-sit{background:#fff7e0}' +
+      '#rvView .rv-off{display:block;font-weight:600;color:#5b6472;font-size:11.5px;margin-top:3px}' +
+      '#rvView .rv-j{display:block;font-size:11px;color:#5b4a12;background:#fff7e0;border-radius:6px;padding:3px 6px;margin-bottom:5px;font-weight:600}' +
+      '#rvView .rv-c{display:block;padding:2px 0;border-bottom:1px dashed #edf0f3;white-space:pre-line}#rvView .rv-c:last-child{border-bottom:0}' +
+      '#rvView .rv-none{color:#9aa3ad;text-align:center}#rvView .rv-note{color:#5b6472;font-size:12.5px;margin:0 0 8px}' +
+      '#rvView .rv-h{font-weight:700;font-size:14px;color:var(--navy,#1B3F63);margin:2px 0 8px}';
+    document.head.appendChild(st);
+  })();
+  function rvBi(ur, en){ return isUrdu ? ur : en; }
+  function rvCases(d){ return ((d && d.cases) || []).map(function(c){ return String(c == null ? '' : c).replace(/\t/g, ' ').trim(); }).filter(Boolean); }
+  function rvDayJudges(b, d){ return (d && d.judges && d.judges.length) ? d.judges : (b.judgesList || []); }
+  function rvShort(j){ return String(j || '').replace(/^Justice\s+/i, ''); }
+  function rvAllJudges(r){
+    var seen = {}, out = [];
+    r.benches.forEach(function(b){ (b.days || []).forEach(function(d){ if(!rvCases(d).length) return; rvDayJudges(b, d).forEach(function(j){ var k = clNormName(j); if(k && !seen[k]){ seen[k] = 1; out.push(j); } }); }); });
+    return out.sort(function(a, b){ return (/hcj|\bcj\b/i.test(b) - /hcj|\bcj\b/i.test(a)) || rvShort(a).localeCompare(rvShort(b)); });
+  }
+  function rvSetMode(m){ RV_MODE = m; rvRender(); }
+  function rvSetJudge(v){ RV_JUDGE = v; rvRender(); }
+  function rvBenchesHtml(r){
+    var order = benchPrintOrder(r.benches, null);
+    var h = '<table><thead><tr><th>' + rvBi('بینچ', 'Bench') + '</th>' + [0, 1, 2, 3, 4].map(function(i){ return '<th>' + dayHeadName(i) + '<br>' + escapeHtml(r.dates[i] || '') + '</th>'; }).join('') + '</tr></thead><tbody>';
+    order.forEach(function(bi){
+      var b = r.benches[bi];
+      h += '<tr' + (clIsSitting(b) ? ' class="rv-sit"' : '') + '><td><span class="rv-bn">' + (clIsSitting(b) ? '🕐 ' : '') + escapeHtml(b.name) + '</span><span class="rv-off">' + rvBi('آفیسر: ', 'Officer: ') + (escapeHtml(b.officer || '') || '—') + '</span></td>';
+      for(var i = 0; i < 5; i++){
+        var d = b.days && b.days[i], cs = rvCases(d);
+        if(!cs.length){ h += '<td class="rv-none">—</td>'; continue; }
+        var js = rvDayJudges(b, d);
+        h += '<td>' + (js.length ? '<span class="rv-j">⚖ ' + escapeHtml(js.map(rvShort).join(', ')) + '</span>' : '') + cs.map(function(c){ return '<span class="rv-c">' + escapeHtml(c) + '</span>'; }).join('') + '</td>';
+      }
+      h += '</tr>';
+    });
+    return h + '</tbody></table>';
+  }
+  function rvJudgesHtml(r){
+    if(RV_JUDGE){
+      var k = clNormName(RV_JUDGE), total = 0;
+      var h = '<div class="rv-h">⚖ ' + escapeHtml(RV_JUDGE) + '</div><table><thead><tr><th>' + rvBi('دن', 'Day') + '</th><th>' + rvBi('بینچ', 'Bench') + '</th><th>' + rvBi('ساتھ بیٹھنے والے ججز', 'Sitting with') + '</th><th>' + rvBi('آفیسر', 'Officer') + '</th><th>' + rvBi('ہمارے کیسز', 'Our cases') + '</th></tr></thead><tbody>';
+      for(var i = 0; i < 5; i++){
+        var hits = [];
+        benchDisplayOrder(r.benches).forEach(function(bi){
+          var b = r.benches[bi], d = b.days && b.days[i], cs = rvCases(d);
+          if(!cs.length) return;
+          var js = rvDayJudges(b, d);
+          if(js.some(function(j){ return clNormName(j) === k; })) hits.push({b: b, cs: cs, other: js.filter(function(j){ return clNormName(j) !== k; })});
+        });
+        if(!hits.length){ h += '<tr><td><b>' + dayHeadName(i) + '</b><br>' + escapeHtml(r.dates[i] || '') + '</td><td class="rv-none" colspan="4">' + rvBi('ہمارا کوئی کیس نہیں', 'None of our cases') + '</td></tr>'; continue; }
+        hits.forEach(function(x, xi){
+          total += x.cs.length;
+          h += '<tr' + (clIsSitting(x.b) ? ' class="rv-sit"' : '') + '>' + (xi ? '' : '<td rowspan="' + hits.length + '"><b>' + dayHeadName(i) + '</b><br>' + escapeHtml(r.dates[i] || '') + '</td>') +
+            '<td class="rv-bn">' + (clIsSitting(x.b) ? '🕐 ' : '') + escapeHtml(x.b.name) + '</td><td>' + (escapeHtml(x.other.map(rvShort).join(', ')) || '—') + '</td><td>' + (escapeHtml(x.b.officer || '') || '—') + '</td>' +
+            '<td>' + x.cs.map(function(c){ return '<span class="rv-c">' + escapeHtml(c) + '</span>'; }).join('') + '</td></tr>';
+        });
+      }
+      return h + '</tbody></table><div class="rv-note" style="margin-top:6px">' + rvBi('اس ہفتے کل کیسز: ', 'Total cases this week: ') + total + '</div>';
+    }
+    /* all judges: one line per judges panel, each day = bench + our cases */
+    var pmap = {}, panels = [];
+    benchDisplayOrder(r.benches).forEach(function(bi){
+      var b = r.benches[bi];
+      for(var i = 0; i < 5; i++){
+        var d = b.days && b.days[i], cs = rvCases(d); if(!cs.length) continue;
+        var js = rvDayJudges(b, d), key = js.join(', ') || rvBi('ججز درج نہیں', 'Judges not entered');
+        var P = pmap[key]; if(!P){ P = pmap[key] = {js: js, key: key, days: [[], [], [], [], []]}; panels.push(P); }
+        P.days[i].push({b: b, cs: cs});
+      }
+    });
+    var h2 = '<table><thead><tr><th>' + rvBi('ججز', 'Judges') + '</th>' + [0, 1, 2, 3, 4].map(function(i){ return '<th>' + dayHeadName(i) + '<br>' + escapeHtml(r.dates[i] || '') + '</th>'; }).join('') + '</tr></thead><tbody>';
+    panels.forEach(function(P){
+      h2 += '<tr><td><b>' + escapeHtml(P.js.map(rvShort).join(', ') || P.key) + '</b></td>' + P.days.map(function(list){
+        if(!list.length) return '<td class="rv-none">—</td>';
+        return '<td>' + list.map(function(x){ return '<span class="rv-j">' + (clIsSitting(x.b) ? '🕐 ' : '') + escapeHtml(x.b.name) + (x.b.officer ? ' · ' + escapeHtml(x.b.officer) : '') + '</span>' + x.cs.map(function(c){ return '<span class="rv-c">' + escapeHtml(c) + '</span>'; }).join(''); }).join('') + '</td>';
+      }).join('') + '</tr>';
+    });
+    return h2 + '</tbody></table>';
+  }
+  function rvRender(){
+    var bar = document.getElementById('rvBar'), view = document.getElementById('rvView'); if(!bar || !view) return;
+    var r = currentRoster;
+    var judges = r ? rvAllJudges(r) : [];
+    if(RV_JUDGE && !judges.some(function(j){ return clNormName(j) === clNormName(RV_JUDGE); })) RV_JUDGE = '';
+    bar.innerHTML = [['one', rvBi('ایک بینچ (ترمیم)', 'One bench (edit)')], ['all', rvBi('تمام بینچز', 'All benches')], ['judges', rvBi('ججز کے حساب سے', 'By judges')]]
+      .map(function(x){ return '<button type="button" class="rv-b' + (RV_MODE === x[0] ? ' on' : '') + '" onclick="rvSetMode(\'' + x[0] + '\')">' + x[1] + '</button>'; }).join('') +
+      (RV_MODE === 'judges' ? '<select onchange="rvSetJudge(this.value)" aria-label="Judge"><option value="">' + rvBi('تمام ججز', 'All judges') + '</option>' +
+        judges.map(function(j){ return '<option value="' + escapeAttr(j) + '"' + (clNormName(j) === clNormName(RV_JUDGE) ? ' selected' : '') + '>' + escapeHtml(j) + '</option>'; }).join('') + '</select>' : '') +
+      (RV_MODE !== 'one' ? '<button type="button" class="rv-b" onclick="rvPrint()">🖨️ ' + rvBi('یہ منظر پرنٹ کریں', 'Print this view') + '</button>' : '');
+    var one = RV_MODE === 'one';
+    ['benchTabs', 'benchLegendList'].forEach(function(id){ var el = document.getElementById(id); if(el) el.style.display = one ? '' : 'none'; });
+    var ts = document.getElementById('rosterTable'); ts = ts && ts.closest('.table-scroll'); if(ts) ts.style.display = one ? '' : 'none';
+    if(one || !r){ view.style.display = 'none'; view.innerHTML = ''; return; }
+    view.style.display = '';
+    view.innerHTML = '<div class="rv-note">' + rvBi('صرف دیکھنے کے لیے — تبدیلی کے لیے "ایک بینچ (ترمیم)" پر جائیں۔', 'View only — to make changes go back to "One bench (edit)".') + '</div>' + (RV_MODE === 'all' ? rvBenchesHtml(r) : rvJudgesHtml(r));
+  }
+  function rvPrint(){
+    var view = document.getElementById('rvView'); if(!view || !currentRoster) return;
+    var title = (RV_MODE === 'all' ? 'ALL BENCHES' : (RV_JUDGE ? 'BY JUDGE — ' + RV_JUDGE : 'BY JUDGES')) + ' — Week ' + (currentRoster.dates[0] || '') + ' to ' + (currentRoster.dates[4] || '');
+    var css = '@page{size:A4 landscape;margin:10mm}body{font:12px/1.4 "Segoe UI",Arial,sans-serif;color:#111;margin:0}h1{font-size:16px;margin:0 0 8px;color:#1B3F63}table{width:100%;border-collapse:collapse}th,td{border:1px solid #c9d1da;padding:5px 6px;vertical-align:top;text-align:left}thead th{background:#1B3F63;color:#fff;text-align:center;-webkit-print-color-adjust:exact;print-color-adjust:exact}thead{display:table-header-group}tr{page-break-inside:avoid}.rv-bn{font-weight:700;color:#1B3F63}.rv-sit{background:#fff7e0;-webkit-print-color-adjust:exact;print-color-adjust:exact}.rv-off{display:block;color:#555;font-size:11px}.rv-j{display:block;font-size:10.5px;font-weight:600;color:#5b4a12;margin-bottom:3px}.rv-c{display:block;white-space:pre-line}.rv-none{color:#999;text-align:center}.rv-note{display:none}.rv-h{font-weight:700;font-size:14px;color:#1B3F63;margin:0 0 6px}';
+    var f = document.createElement('iframe');
+    f.style.cssText = 'position:fixed;right:0;bottom:0;width:0;height:0;border:0;visibility:hidden';
+    document.body.appendChild(f);
+    var dd = f.contentWindow.document;
+    dd.open(); dd.write('<!doctype html><html><head><meta charset="utf-8"><title>' + escapeHtml(title) + '</title><style>' + css + '</style></head><body><h1>WEEKLY COURT ROSTER — ' + escapeHtml(title) + '</h1>' + view.innerHTML + '</body></html>'); dd.close();
+    setTimeout(function(){ try{ f.contentWindow.focus(); f.contentWindow.print(); }catch(e){} setTimeout(function(){ f.remove(); }, 2000); }, 300);
+  }
 
   function renderPageHeading(){
     var box = document.getElementById('pageHeadingBox');
