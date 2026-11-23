@@ -2972,7 +2972,7 @@ body[data-theme="night"] .userbar-ce .logout-btn:hover{ background:rgba(255,156,
     f.onload = function(){
       if(fired) return; fired = true;
       setTimeout(function(){
-        try{ f.contentWindow.focus(); f.contentWindow.print(); }catch(e){ console.error(e); }
+        try{ cleanPrintFrame(f.contentWindow); f.contentWindow.focus(); f.contentWindow.print(); }catch(e){ console.error(e); }
         setTimeout(function(){ if(f.parentNode) f.parentNode.removeChild(f); }, 60000);
       }, 250);
     };
@@ -3723,7 +3723,7 @@ body[data-theme="night"] .userbar-ce .logout-btn:hover{ background:rgba(255,156,
     document.body.appendChild(f);
     var dd = f.contentWindow.document;
     dd.open(); dd.write('<!doctype html><html><head><meta charset="utf-8"><title>' + escapeHtml(title) + '</title><style>' + css + '</style></head><body><h1>WEEKLY COURT ROSTER — ' + escapeHtml(title) + '</h1>' + view.innerHTML + '</body></html>'); dd.close();
-    setTimeout(function(){ try{ f.contentWindow.focus(); f.contentWindow.print(); }catch(e){} setTimeout(function(){ f.remove(); }, 2000); }, 300);
+    setTimeout(function(){ try{ cleanPrintFrame(f.contentWindow); f.contentWindow.focus(); f.contentWindow.print(); }catch(e){} setTimeout(function(){ f.remove(); }, 2000); }, 300);
   }
 
   /* ---------- downloads of the shown view (All benches / By judges / one judge): PDF, Word, Excel, CSV ---------- */
@@ -3902,6 +3902,19 @@ body[data-theme="night"] .userbar-ce .logout-btn:hover{ background:rgba(255,156,
     }catch(err){ console.error(err); alert((isUrdu ? 'فائل نہیں بن سکی: ' : 'Could not build the file: ') + (err && err.message ? err.message : err)); }
   }
 
+  /* Print without the browser's web address / date / time (they only print inside the page margin): margin 0, and the
+     same white border is drawn by the page itself on every sheet. */
+  function cleanPrintFrame(w){
+    try{
+      var d = w.document; if(d.getElementById('cleanPrintCss')) return;
+      var css = Array.prototype.map.call(d.querySelectorAll('style'), function(x){ return x.textContent; }).join(' ');
+      var m = /@page\s*\{[^}]*?margin\s*:\s*([^;}]+)/i.exec(css), pad = m ? m[1].replace(/!important/i, '').trim() : '10mm';
+      if(/^0(px|mm|in)?$/.test(pad)) return;
+      var st = d.createElement('style'); st.id = 'cleanPrintCss';
+      st.textContent = '@media print{@page{margin:0 !important}html{padding:' + pad + ' !important;-webkit-box-decoration-break:clone !important;box-decoration-break:clone !important;background:#fff !important}}';
+      (d.head || d.documentElement).appendChild(st);
+    }catch(e){}
+  }
   function renderPageHeading(){
     var box = document.getElementById('pageHeadingBox');
     var current = isUrdu ? headingUr : headingEn;
