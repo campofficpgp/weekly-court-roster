@@ -2467,7 +2467,7 @@ body[data-theme="night"] .userbar-ce .logout-btn:hover{ background:rgba(255,156,
     pages.forEach(function(pg, i){
       pg.drawLine({start:{x:MG, y:30}, end:{x:PW - MG, y:30}, thickness:0.6, color:BORDER});
       pg.drawText('', {x:MG, y:19, size:7, font:fR, color:GREYTX});
-      var mid = 'Generated ' + X.genDate, mw = fR.widthOfTextAtSize(mid, 7);
+      var mid = '', mw = fR.widthOfTextAtSize(mid, 7);
       pg.drawText(mid, {x:(PW - mw) / 2, y:19, size:7, font:fR, color:GREYTX});
       var pn = 'Page ' + (i + 1) + ' of ' + tot, pw0 = fB.widthOfTextAtSize(pn, 7.4);
       pg.drawText(pn, {x:PW - MG - pw0, y:19, size:7.4, font:fB, color:NAVY});
@@ -2575,7 +2575,7 @@ body[data-theme="night"] .userbar-ce .logout-btn:hover{ background:rgba(255,156,
     });
     if(includeStamp){ kids = kids.concat(signBlock()); }
     var footer = new D.Footer({children:[new D.Paragraph({alignment:AL.CENTER, children:[
-      new D.TextRun({text:'Generated ' + X.genDate + '  |  Page ', font:FONT, size:14, color:'666666'}),
+      new D.TextRun({text:'Page ', font:FONT, size:14, color:'666666'}),
       new D.TextRun({children:[D.PageNumber.CURRENT], font:FONT, size:14, bold:true, color:'1B3F63'}),
       new D.TextRun({text:' of ', font:FONT, size:14, color:'666666'}),
       new D.TextRun({children:[D.PageNumber.TOTAL_PAGES], font:FONT, size:14, bold:true, color:'1B3F63'})
@@ -2709,7 +2709,7 @@ body[data-theme="night"] .userbar-ce .logout-btn:hover{ background:rgba(255,156,
       '</cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>';
 
     var NS_MAIN = 'http://schemas.openxmlformats.org/spreadsheetml/2006/main', NS_R = 'http://schemas.openxmlformats.org/officeDocument/2006/relationships';
-    var footerTxt = '&amp;C&amp;"Arial,Regular"&amp;7Generated ' + xmlEsc(X.genDate) + '&amp;R&amp;"Arial,Bold"&amp;7Page &amp;P of &amp;N';
+    var footerTxt = '&amp;R&amp;"Arial,Bold"&amp;7Page &amp;P of &amp;N';
     var logoH = 56, logoW = Math.round(logoH * PUNJAB_LOGO_RATIO);
     var gBytes = punjabLogoBytes(), pI = window.CampLogos ? await CampLogos.info('pros') : null;
     function drawingXml(){
@@ -2964,7 +2964,7 @@ body[data-theme="night"] .userbar-ce .logout-btn:hover{ background:rgba(255,156,
       h += '<tr><td class="l"><b>' + X(P.name) + '</b></td><td class="l">' + X(P.benches.join(', ')) + '</td>' +
         P.cells.map(function(c){ return '<td' + (c.length ? '' : ' class="z"') + '>' + (c.length ? X(c.join('; ')) : '-') + '</td>'; }).join('') + '<td><b>' + P.n + '</b></td></tr>';
     });
-    h += '</tbody></table><div class="ft">Generated ' + X(wkGenDate()) + '</div></body></html>';
+    h += '</tbody></table></body></html>';
     var f = document.createElement('iframe');
     f.setAttribute('aria-hidden', 'true'); f.setAttribute('data-wk-print', '1');
     f.style.cssText = 'position:fixed;right:0;bottom:0;width:0;height:0;border:0;visibility:hidden;';
@@ -3122,7 +3122,7 @@ body[data-theme="night"] .userbar-ce .logout-btn:hover{ background:rgba(255,156,
     var pages = doc.getPages(), gd = wkGenDate();
     pages.forEach(function(p, i){
       p.drawLine({start:{x:M, y:26}, end:{x:PW - M, y:26}, thickness:.6, color:line});
-      var mid = 'Generated ' + gd; p.drawText(mid, {x:(PW - F.widthOfTextAtSize(mid, 7)) / 2, y:15, size:7, font:F, color:grey});
+      var mid = ''; p.drawText(mid, {x:(PW - F.widthOfTextAtSize(mid, 7)) / 2, y:15, size:7, font:F, color:grey});
       var s = 'Page ' + (i + 1) + ' of ' + pages.length; p.drawText(s, {x:PW - M - FB.widthOfTextAtSize(s, 7.4), y:15, size:7.4, font:FB, color:navy});
     });
     doc.setTitle('Weekly Court Roster - Week Summary'); doc.setCreator('');
@@ -3311,7 +3311,7 @@ body[data-theme="night"] .userbar-ce .logout-btn:hover{ background:rgba(255,156,
     }
     var doc = new D.Document({creator:'', title:'Weekly Court Roster — Week Summary', sections:[{
       properties:{page:{size:{width:11906, height:16838, orientation:D.PageOrientation.LANDSCAPE}, margin:{top:567, bottom:680, left:567, right:567, footer:300}}},
-      footers:{default:new D.Footer({children:[new D.Paragraph({alignment:AL.CENTER, children:[new D.TextRun({children:['Generated ' + wkGenDate() + '   ·   Page ', D.PageNumber.CURRENT, ' of ', D.PageNumber.TOTAL_PAGES], font:FONT, size:15, color:'777777'})]})]})},
+      footers:{default:new D.Footer({children:[new D.Paragraph({alignment:AL.CENTER, children:[new D.TextRun({children:['Page ', D.PageNumber.CURRENT, ' of ', D.PageNumber.TOTAL_PAGES], font:FONT, size:15, color:'777777'})]})]})},
       children:children}]});
     return await D.Packer.toBlob(doc);
   }
@@ -3835,7 +3835,7 @@ body[data-theme="night"] .userbar-ce .logout-btn:hover{ background:rgba(255,156,
       y -= h;
     });
     var pages = doc.getPages(), n = new Date(), gd = n.getDate() + ' ' + MONTHS_EN_R[n.getMonth()] + ' ' + n.getFullYear();
-    pages.forEach(function(p, i){ var s = 'Generated ' + gd + '   |   Page ' + (i + 1) + ' of ' + pages.length; p.drawText(s, {x: PW - M - F.widthOfTextAtSize(s, 7), y: 12, size: 7, font: F, color: grey}); });
+    pages.forEach(function(p, i){ var s = 'Page ' + (i + 1) + ' of ' + pages.length; p.drawText(s, {x: PW - M - F.widthOfTextAtSize(s, 7), y: 12, size: 7, font: F, color: grey}); });
     doc.setTitle('Weekly Court Roster - ' + pdfSafe(m.title));
     return new Blob([await doc.save()], {type: 'application/pdf'});
   }
